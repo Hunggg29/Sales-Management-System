@@ -73,6 +73,58 @@ SalesManagementAPI/*.rsuser
 SalesManagementAPI/appsettings.Development.json
 SalesManagementAPI/appsettings.Local.json
 
+# === General ===
+node_modules/
+dist/
+build/
+.env
+.env.local
+
+# === Visual Studio / .NET ===
+.vs/
+*.user
+*.suo
+*.dbmdl
+*.cache
+*.log
+*.pdb
+*.mdb
+*.opendb
+*.vscode/
+*.vsix
+*.snupkg
+
+# === ASP.NET Core ===
+bin/
+obj/
+project.lock.json
+appsettings.Development.json
+appsettings.Local.json
+
+# === Database / Temporary Files ===
+*.db
+*.db-shm
+*.db-wal
+*.ldf
+*.mdf
+*.sqlite
+
+# === IDE & Tools ===
+.vscode/
+.idea/
+*.tlog
+*.vspscc
+*.ncb
+*.aps
+*.psess
+*.vsp
+*.vspx
+*.sln.docstates
+
+# === Copilot / AI tools ===
+**/copilot-chat/
+**/CopilotIndices/
+**/sessions/
 
 # ==============================
 # OTHERS
