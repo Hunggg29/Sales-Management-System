@@ -12,5 +12,7 @@ namespace SalesManagementAPI.Models
         public Customer? Customer { get; set; }
         public ICollection<OrderDetail>? OrderDetails { get; set; }
         public ICollection<Payment>? Payments { get; set; }
-        public Invoice? Invoice { get; set; }
+        public ICollection<Invoice>? Invoices { get; set; }
+    }
+}
    
