@@ -16,6 +16,11 @@ namespace SalesManagementAPI.Services.Implementations
             _context = context;
         }
 
+        public async Task<IEnumerable<Category>> GetAllCategoriesAsync()
+        {
+             return await _context.Categories.ToListAsync();
+        }
+
         [HttpGet]
         public async Task<IEnumerable<Category>> GetProductsByCategoryAsync()
         {

@@ -15,6 +15,17 @@ namespace SalesManagementAPI.Controllers
             _categoryService = categoryService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAllCategories()
+        {
+            var results = await _categoryService.GetAllCategoriesAsync();
+            if (results == null)
+            {
+                return NotFound();
+            }
+            return Ok(results);
+        }
+
         [HttpGet("with-products")]
         public async Task<IActionResult> GetProductsWithCategory()
         {

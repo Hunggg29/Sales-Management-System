@@ -94,27 +94,6 @@ const HomePage = () => {
     },
   ];
 
-  const supportTeam = [
-    {
-      name: 'Mr. Tùng',
-      role: 'Trưởng phòng Kỹ thuật',
-      phone: '0913.03.03.28',
-      email: 'tung@thietkephanmem.com',
-    },
-    {
-      name: 'Mr. Phúc',
-      role: 'Coder',
-      phone: '0975.754.770',
-      email: 'phuc@thietkephanmem.com',
-    },
-    {
-      name: 'Ms. Thu',
-      role: 'Sale & SEOer',
-      phone: '0985.299.707',
-      email: 'thu@thietkephanmem.com',
-    },
-  ];
-
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % bannerSlides.length);
@@ -194,7 +173,7 @@ const HomePage = () => {
       </section>
 
       {/* Main Content */}
-      <div className="max-w-[1360px] mx-auto px-4 py-8">
+      <div className="max-w-[1600px] mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar - Categories */}
           <aside className="lg:w-[340px] flex-shrink-0">
@@ -204,8 +183,8 @@ const HomePage = () => {
               viewport={{ once: true }}
               className="bg-white border border-[#EAEAEA] rounded-lg overflow-hidden"
             >
-              <div className="bg-primary px-4 py-3">
-                <h2 className="text-white font-bold text-base uppercase">Sản phẩm</h2>
+              <div className="bg-[#CC0000] px-4 py-3">
+                <h2 className="text-white font-bold text-lg uppercase tracking-wide">DANH MỤC SẢN PHẨM</h2>
               </div>
               <ul className="divide-y divide-[#EAEAEA]">
                 {categories.map((category, index) => (
@@ -216,7 +195,7 @@ const HomePage = () => {
                   >
                     <a
                       href="#"
-                      className="block px-4 py-3 text-[#333333] font-bold text-sm hover:text-primary transition-colors"
+                      className="block px-5 py-4 text-[#333333] font-bold text-base hover:text-primary transition-colors"
                     >
                       {category.name}
                     </a>
@@ -225,42 +204,6 @@ const HomePage = () => {
               </ul>
             </motion.div>
 
-            {/* Online Support */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-              className="mt-8 bg-white border border-[#EAEAEA] rounded-lg overflow-hidden"
-            >
-              <div className="bg-primary px-4 py-3">
-                <h2 className="text-white font-bold text-base uppercase">Hỗ trợ trực tuyến</h2>
-              </div>
-              <div className="p-4 space-y-4">
-                {supportTeam.map((member, index) => (
-                  <div key={index} className="border-b border-[#DDDDDD] pb-4 last:border-0">
-                    <p className="text-[#333333] font-bold text-sm text-center uppercase mb-1">
-                      {member.name}
-                    </p>
-                    <p className="text-[#333333] text-sm text-center mb-2">{member.role}</p>
-                    <div className="text-center space-y-1">
-                      <a
-                        href={`tel:${member.phone.replace(/\./g, '')}`}
-                        className="block text-[#FF3300] text-lg hover:underline"
-                      >
-                        {member.phone}
-                      </a>
-                      <a
-                        href={`mailto:${member.email}`}
-                        className="block text-[#333333] text-sm hover:text-primary hover:underline"
-                      >
-                        {member.email}
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
           </aside>
 
           {/* Main Content Area */}
@@ -273,8 +216,8 @@ const HomePage = () => {
                 viewport={{ once: true }}
                 className="border-b-2 border-[#EAEAEA] mb-6"
               >
-                <h2 className="text-[#333333] font-medium text-2xl uppercase inline-block border-l-4 border-[#FF3300] pl-3 pb-2">
-                  Sản phẩm bán chạy
+                <h2 className="text-[#333333] font-semibold text-3xl uppercase inline-block border-l-4 border-[#FF3300] pl-3 pb-2">
+                  SẢN PHẨM
                 </h2>
               </motion.div>
 
@@ -283,7 +226,7 @@ const HomePage = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
               >
                 {featuredProducts.map((product, index) => (
                   <motion.div
@@ -302,37 +245,41 @@ const HomePage = () => {
                         }}
                       />
                     </div>
-                    <div className="p-4 text-center">
-                      <h3 className="text-[#333333] font-bold text-sm mb-2 whitespace-pre-line">
+                    <div className="p-5 text-center">
+                      <h3 className="text-[#333333] font-bold text-lg mb-2 whitespace-pre-line">
                         {product.name}
                       </h3>
-                      <p className="text-[#FF3366] font-bold text-sm">{product.price}</p>
+                      <p className="text-[#FF3366] font-bold text-lg">{product.price}</p>
                     </div>
                   </motion.div>
                 ))}
               </motion.div>
             </section>
+          </main>
+        </div>
+      </div>
 
-            {/* Featured News */}
-            <section>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                className="mb-6"
-              >
-                <h2 className="text-[#333333] font-semibold text-xl uppercase inline-block border-l-4 border-[#0099CC] pl-3">
-                  Tin nổi bật
-                </h2>
-              </motion.div>
+      {/* Featured News - Full Width */}
+      <section className="bg-white py-12">
+        <div className="max-w-[1600px] mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="border-b-2 border-[#EAEAEA] mb-8"
+          >
+            <h2 className="text-[#333333] font-semibold text-3xl uppercase inline-block border-l-4 border-[#0099CC] pl-3 pb-2">
+              Tin nổi bật
+            </h2>
+          </motion.div>
 
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-              >
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
                 {news.map((article) => (
                   <motion.div
                     key={article.id}
@@ -350,11 +297,11 @@ const HomePage = () => {
                         }}
                       />
                     </div>
-                    <div className="p-4">
-                      <h3 className="text-[#333333] font-bold text-sm leading-tight mb-3 line-clamp-2 group-hover:text-primary transition-colors">
+                    <div className="p-5">
+                      <h3 className="text-[#333333] font-bold text-lg leading-tight mb-4 line-clamp-2 group-hover:text-primary transition-colors">
                         {article.title}
                       </h3>
-                      <div className="flex items-center gap-4 text-xs text-[#919191] mb-3">
+                      <div className="flex items-center gap-4 text-base text-[#919191] mb-4">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {article.date}
@@ -366,19 +313,17 @@ const HomePage = () => {
                       </div>
                       <a
                         href="#"
-                        className="text-[#0099CC] text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all"
+                        className="text-[#0099CC] text-lg font-semibold flex items-center gap-1 hover:gap-2 transition-all"
                       >
                         Xem tiếp
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-5 h-5" />
                       </a>
                     </div>
                   </motion.div>
                 ))}
-              </motion.div>
-            </section>
-          </main>
+          </motion.div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
