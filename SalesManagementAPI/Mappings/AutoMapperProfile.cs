@@ -9,6 +9,8 @@ namespace SalesManagementAPI.Mappings
         public AutoMapperProfile()
         {
             CreateMap<RegisterRequestDto, User>().ReverseMap();
+            CreateMap<Customer, CreateCustomerDto>().ReverseMap();
+            CreateMap<Customer, UpdateCustomerDto>().ReverseMap();
         }
     }
 }

@@ -26,7 +26,7 @@ namespace SalesManagementAPI.Services.Implementations
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             if(user == null || !BC.Verify(password, user.PasswordHash))
             {
-                return (false, "Invalid email or password");
+                return (false, "Sai mật khẩu hoặc email");
             }
 
             var token = GenerateJwtToken(user);
@@ -38,7 +38,7 @@ namespace SalesManagementAPI.Services.Implementations
             var existingUser = await _context.Users.AnyAsync(u => u.Email == email);
             if (existingUser)
             {
-                return (false, "Email already in use");
+                return (false, "Email đã được sử dụng");
             }
             var user = new User
             {

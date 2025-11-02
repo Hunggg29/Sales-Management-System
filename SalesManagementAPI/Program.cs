@@ -6,23 +6,15 @@ using SalesManagementAPI.Data;
 using SalesManagementAPI.Mappings;
 using SalesManagementAPI.Services.Implementations;
 using SalesManagementAPI.Services.Interfaces;
+using AutoMapper;
+
+
+
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
-// Add CORS policy
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowReactApp", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -32,6 +24,19 @@ builder.Services.AddControllers()
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
+// Add CORS to allow frontend to access API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174") // Vite default ports
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -46,11 +51,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     });
 });
 
-//Add AutoMapper
+// Add AutoMapper
+// Install package: dotnet add package AutoMapper.Extensions.Microsoft.DependencyInjection
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -83,7 +91,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Use CORS - MUST be before Authentication and Authorization
+// Enable CORS
 app.UseCors("AllowReactApp");
 
 app.UseAuthentication();

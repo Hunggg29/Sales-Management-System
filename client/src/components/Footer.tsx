@@ -9,9 +9,8 @@ const Footer = () => {
     { name: 'Trang chủ', path: '/' },
     { name: 'Giới thiệu', path: '/gioi-thieu' },
     { name: 'Sản phẩm', path: '/san-pham' },
-    { name: 'Chính sách bán hàng', path: '/chinh-sach' },
+    { name: 'Tư vấn', path: '/tu-van' },
     { name: 'Tin tức', path: '/tin-tuc' },
-    { name: 'Thư viện', path: '/thu-vien' },
     { name: 'Liên hệ', path: '/lien-he' },
   ];
 
@@ -37,41 +36,41 @@ const Footer = () => {
               </div>
               
               <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-red-600 mt-1 flex-shrink-0" />
+                <MapPin className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                 <div>
-                  <p className="text-[#555] text-base font-medium">Địa chỉ:</p>
-                  <p className="text-[#333] text-base">Xã Thanh Trì - Hà Nội</p>
+                  <p className="text-[#555] text-lg font-medium">Địa chỉ:</p>
+                  <p className="text-[#333] text-lg">Xã Thanh Trì - Hà Nội</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-red-600 mt-1 flex-shrink-0" />
+                <Mail className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                 <div>
-                  <p className="text-[#555] text-base font-medium">Email:</p>
-                  <a href="mailto:thanglongtape@gmail.com" className="text-red-600 text-base hover:underline block">
+                  <p className="text-[#555] text-lg font-medium">Email:</p>
+                  <a href="mailto:thanglongtape@gmail.com" className="text-red-600 text-lg hover:underline block">
                     thanglongtape@gmail.com
                   </a>
-                  <a href="mailto:karota.vietnam@gmail.com" className="text-red-600 text-base hover:underline block">
+                  <a href="mailto:karota.vietnam@gmail.com" className="text-red-600 text-lg hover:underline block">
                     karota.vietnam@gmail.com
                   </a>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-red-600 mt-1 flex-shrink-0" />
+                <Phone className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                 <div>
-                  <p className="text-[#555] text-base font-medium">Điện thoại:</p>
-                  <a href="tel:0243.681.6262" className="text-[#333] text-base hover:text-red-600 transition-colors block">
+                  <p className="text-[#555] text-lg font-medium">Điện thoại:</p>
+                  <a href="tel:0243.681.6262" className="text-[#333] text-lg hover:text-red-600 transition-colors block">
                     0243.681.6262
                   </a>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-red-600 mt-1 flex-shrink-0 animate-pulse" />
+                <Phone className="w-6 h-6 text-red-600 mt-1 flex-shrink-0 animate-pulse" />
                 <div>
-                  <p className="text-[#555] text-base font-medium">Hotline:</p>
-                  <a href="tel:0947.900.666" className="text-red-600 text-lg font-bold hover:text-red-700 transition-colors">
+                  <p className="text-[#555] text-lg font-medium">Hotline:</p>
+                  <a href="tel:0947.900.666" className="text-red-600 text-xl font-bold hover:text-red-700 transition-colors">
                     0947.900.666
                   </a>
                 </div>
@@ -79,7 +78,7 @@ const Footer = () => {
 
               {/* Social Media */}
               <div className="pt-4 border-t border-gray-200">
-                <p className="text-[#555] text-base font-medium mb-3">Kết nối với chúng tôi:</p>
+                <p className="text-[#555] text-lg font-medium mb-3">Kết nối với chúng tôi:</p>
                 <div className="flex gap-3">
                   <motion.a
                     href="#"
@@ -132,7 +131,7 @@ const Footer = () => {
                 >
                   <Link
                     to={item.path}
-                    className="text-[#333] text-base font-medium hover:text-red-600 transition-colors flex items-center gap-2 group"
+                    className="text-[#333] text-lg font-medium hover:text-red-600 transition-colors flex items-center gap-2 group"
                   >
                     <span className="text-red-600 group-hover:translate-x-1 transition-transform">▸</span>
                     {item.name}
@@ -155,7 +154,7 @@ const Footer = () => {
             <div className="mt-6">
               <div className="rounded-lg overflow-hidden shadow-lg border-2 border-red-100">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3724.661966698963!2d105.8382597792204!3d21.006183130712536!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135ac71294bf0ab%3A0xc7e2d20e5e04a9da!2sHanoi%20University%20of%20Science%20and%20Technology!5e0!3m2!1sen!2s!4v1761761175437!5m2!1sen!2s"
+                  src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d14905.168665346466!2d105.854194!3d20.940779!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3135adc0f464b957%3A0xcb94a45c294be9e1!2zQ-G7lSDEkGnhu4NuIEEsIFThu6kgSGnhu4dwLCBUaGFuaCBUcsOsLCBIYW5vaSwgVmlldG5hbQ!5e0!3m2!1sen!2sus!4v1761849265234!5m2!1sen!2sus"
                   height="300"
                   style={{ border: 0 }}
                   allowFullScreen
@@ -166,7 +165,7 @@ const Footer = () => {
                 ></iframe>
               </div>
               <motion.a
-                href="https://maps.app.goo.gl/cDZiMg1QGH8RPEhFA"
+                href="https://maps.app.goo.gl/3eHsJtQoABStC4yj7"
                 target="_blank"
                 rel="noopener noreferrer"
                 whileHover={{ scale: 1.02 }}

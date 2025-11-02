@@ -11,7 +11,7 @@ namespace SalesManagementAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class CustomersController : ControllerBase
     {
         private readonly ICustomerService _customerService;
@@ -24,16 +24,21 @@ namespace SalesManagementAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCustomers() 
+        public async Task<IActionResult> GetAllCustomers()
         {
             var customers = await _customerService.GetAllCustomerAsync();
             return Ok(customers);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCustomerById(int id)
+
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetCustomerByUserId(int userId)
         {
-            var customer = await _customerService.GetCustomerByCustomerIdAsync(id);
+            var customer = await _customerService.GetCustomerByUserIdAsync(userId);
+            if (customer == null)
+            {
+                return NotFound(new { message = "Không tìm thấy tài khoản khách hàng" });
+            }
             return Ok(customer);
         }
 
@@ -42,17 +47,17 @@ namespace SalesManagementAPI.Controllers
         {
             var customer = _mapper.Map<Customer>(createCustomerDto);
             await _customerService.CreateCustomerAsync(customer);
-            return CreatedAtAction(nameof(GetCustomerById), new { id = customer.CustomerID }, customer);
+            return CreatedAtAction(nameof(GetCustomerByUserId), new { id = customer.CustomerID }, customer);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(int customerId, [FromBody] CreateCustomerDto updateCustomerDto)
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> UpdateCustomerByUserId([FromRoute] int userId, [FromBody] UpdateCustomerDto updateCustomerDto)
         {
             var customer = _mapper.Map<Customer>(updateCustomerDto);
-            customer = await _customerService.UpdateCustomerAsync(customerId, customer);
-            if(customer == null)
+            customer = await _customerService.UpdateCustomerByUserIdAsync(userId, customer);
+            if (customer == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Không tìm thấy tài khoản khách hàng" });
             }
             return Ok(customer);
         }

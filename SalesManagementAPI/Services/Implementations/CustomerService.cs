@@ -23,6 +23,11 @@ namespace SalesManagementAPI.Services.Implementations
             return await _context.Customers.FirstOrDefaultAsync(c => c.CustomerID == id);
         }
 
+        public async Task<Customer?> GetCustomerByUserIdAsync(int userId)
+        {
+            return await _context.Customers.FirstOrDefaultAsync(c => c.UserID == userId);
+        }
+
         public async Task<Customer> CreateCustomerAsync(Customer customer)
         {
             _context.Customers.Add(customer);
@@ -30,9 +35,9 @@ namespace SalesManagementAPI.Services.Implementations
             return customer;
         }
 
-        public async Task<Customer?> UpdateCustomerAsync(int customerId, Customer customer)
+        public async Task<Customer?> UpdateCustomerByUserIdAsync(int userId, Customer customer)
         {
-            var existCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerID == customerId);
+            var existCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.UserID == userId);
             if (existCustomer == null)
             {
                 return null;

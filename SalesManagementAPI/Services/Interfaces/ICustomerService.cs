@@ -8,7 +8,9 @@ namespace SalesManagementAPI.Services.Interfaces
 
         Task<Customer?> GetCustomerByCustomerIdAsync(int id);
 
+        Task<Customer?> GetCustomerByUserIdAsync(int userId);
+
         Task<Customer> CreateCustomerAsync(Customer customer);
-        Task<Customer?> UpdateCustomerAsync(int customerId, Customer customer);
+        Task<Customer?> UpdateCustomerByUserIdAsync(int userId, Customer customer);
     }
 }

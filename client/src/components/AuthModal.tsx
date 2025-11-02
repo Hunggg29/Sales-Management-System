@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { MdClose, MdMail, MdLock, MdPerson } from 'react-icons/md';
 import { useState } from 'react';
+import { login, register } from '../services/api';
+import CustomerInfoModal from './CustomerInfoModal';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,37 +19,86 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
     confirmPassword: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  
+  // Customer info modal states
+  const [showCustomerInfoModal, setShowCustomerInfoModal] = useState(false);
+  const [registeredUserId, setRegisteredUserId] = useState<number | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(''); // Clear previous errors
+    setIsLoading(true);
     
-    if (mode === 'signup') {
-      // Validate confirm password
-      if (formData.password !== formData.confirmPassword) {
-        alert('Mật khẩu không khớp!');
-        return;
+    try {
+      if (mode === 'signup') {
+        // Validate confirm password
+        if (formData.password !== formData.confirmPassword) {
+          setError('Mật khẩu không khớp!');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Call register API
+        const response = await register(
+          formData.username,
+          formData.email,
+          formData.password
+        );
+        
+        // Extract userId from response (assuming it's in the message or add it to backend response)
+        // For now, we'll need to login to get the userId or modify backend to return it
+        // Let's try to login automatically to get userId
+        const loginResponse = await login(formData.email, formData.password);
+        
+        // Save token temporarily
+        localStorage.setItem('authToken', loginResponse.token);
+        localStorage.setItem('user', JSON.stringify(loginResponse.user));
+        
+        // Reset form
+        setFormData({
+          email: '',
+          username: '',
+          password: '',
+          confirmPassword: '',
+        });
+        
+        // Show customer info modal
+        setRegisteredUserId(loginResponse.user.userID);
+        setShowCustomerInfoModal(true);
+        onClose();
+        
+      } else {
+        // Call login API
+        const response = await login(formData.email, formData.password);
+        
+        // Save token to localStorage (for future authenticated requests)
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
+        alert(`Đăng nhập thành công! Chào mừng ${response.user.userName}`);
+        
+        // Reset form and close
+        setFormData({
+          email: '',
+          username: '',
+          password: '',
+          confirmPassword: '',
+        });
+        onClose();
+        
+        // Optionally: trigger a page refresh or update app state
+        window.location.reload();
       }
-      console.log('Sign Up:', { 
-        email: formData.email, 
-        username: formData.username, 
-        password: formData.password 
-      });
-      alert('Đăng ký thành công!');
-    } else {
-      console.log('Sign In:', { 
-        email: formData.email, 
-        password: formData.password 
-      });
-      alert('Đăng nhập thành công!');
+    } catch (err) {
+      // Display error message
+      const errorMessage = err instanceof Error ? err.message : 'Đã xảy ra lỗi';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Reset form
-    setFormData({
-      email: '',
-      username: '',
-      password: '',
-      confirmPassword: '',
-    });
-    onClose();
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,12 +108,20 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
     });
   };
 
+  const handleCustomerInfoClose = () => {
+    setShowCustomerInfoModal(false);
+    setRegisteredUserId(null);
+    // Optionally reload page to show logged in state
+    window.location.reload();
+  };
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -92,6 +151,13 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                  <span className="block sm:inline">{error}</span>
+                </div>
+              )}
+
               {/* Email Field */}
               <div>
                 <label className="block text-xs sm:text-sm font-semibold text-gray-800 mb-1.5 sm:mb-2">
@@ -177,9 +243,10 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                className="w-full bg-red-600 text-white font-bold py-3 sm:py-4 rounded-lg shadow-md hover:bg-red-700 transition-all mt-4 sm:mt-6 text-sm sm:text-base"
+                disabled={isLoading}
+                className="w-full bg-red-600 text-white font-bold py-3 sm:py-4 rounded-lg shadow-md hover:bg-red-700 transition-all mt-4 sm:mt-6 text-sm sm:text-base disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {mode === 'signin' ? 'Đăng nhập' : 'Đăng ký'}
+                {isLoading ? 'Đang xử lý...' : (mode === 'signin' ? 'Đăng nhập' : 'Đăng ký')}
               </motion.button>
 
               {/* Switch Mode */}
@@ -200,6 +267,16 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
         </>
       )}
     </AnimatePresence>
+
+    {/* Customer Info Modal */}
+    {registeredUserId && (
+      <CustomerInfoModal
+        isOpen={showCustomerInfoModal}
+        onClose={handleCustomerInfoClose}
+        userId={registeredUserId}
+      />
+    )}
+    </>
   );
 };
 
