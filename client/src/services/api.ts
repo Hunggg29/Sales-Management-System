@@ -244,3 +244,196 @@ export async function updateCustomerByUserId(
 
   return handleResponse<import('../types').Customer>(response);
 }
+
+/**
+ * CART ENDPOINTS
+ */
+
+/**
+ * Get cart by user ID
+ * GET /api/Cart/user/{userId}
+ * 
+ * @param userId - The ID of the user
+ * @returns Promise with cart details including items and total
+ */
+export async function getCartByUserId(userId: number): Promise<import('../types').Cart> {
+  const response = await fetch(`${API_BASE_URL}/Cart/user/${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').Cart>(response);
+}
+
+/**
+ * Add product to cart
+ * POST /api/Cart/user/{userId}/items
+ * 
+ * @param userId - The ID of the user
+ * @param cartData - Product ID and quantity
+ * @returns Promise with updated cart
+ */
+export async function addToCart(
+  userId: number,
+  cartData: import('../types').AddToCartRequest
+): Promise<import('../types').Cart> {
+  const response = await fetch(`${API_BASE_URL}/Cart/user/${userId}/items`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(cartData),
+  });
+
+  return handleResponse<import('../types').Cart>(response);
+}
+
+/**
+ * Update cart item quantity
+ * PUT /api/Cart/user/{userId}/items/{cartItemId}
+ * 
+ * @param userId - The ID of the user
+ * @param cartItemId - The ID of the cart item
+ * @param updateData - New quantity
+ * @returns Promise with updated cart
+ */
+export async function updateCartItem(
+  userId: number,
+  cartItemId: number,
+  updateData: import('../types').UpdateCartItemRequest
+): Promise<import('../types').Cart> {
+  const response = await fetch(`${API_BASE_URL}/Cart/user/${userId}/items/${cartItemId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  return handleResponse<import('../types').Cart>(response);
+}
+
+/**
+ * Remove item from cart
+ * DELETE /api/Cart/user/{userId}/items/{cartItemId}
+ * 
+ * @param userId - The ID of the user
+ * @param cartItemId - The ID of the cart item to remove
+ * @returns Promise with success message
+ */
+export async function removeCartItem(
+  userId: number,
+  cartItemId: number
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Cart/user/${userId}/items/${cartItemId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+/**
+ * Clear entire cart
+ * DELETE /api/Cart/user/{userId}
+ * 
+ * @param userId - The ID of the user
+ * @returns Promise with success message
+ */
+export async function clearCart(userId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Cart/user/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+/**
+ * ORDER ENDPOINTS
+ */
+
+/**
+ * Create order from cart
+ * POST /api/Orders/create/{userId}
+ * 
+ * @param userId - The ID of the user
+ * @param orderData - Order details including payment method
+ * @returns Promise with created order details
+ */
+export async function createOrder(
+  userId: number,
+  orderData: import('../types').CreateOrderRequest
+): Promise<import('../types').Order> {
+  const response = await fetch(`${API_BASE_URL}/Orders/create/${userId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(orderData),
+  });
+
+  return handleResponse<import('../types').Order>(response);
+}
+
+/**
+ * Get all orders by user ID
+ * GET /api/Orders/user/{userId}
+ * 
+ * @param userId - The ID of the user
+ * @returns Promise with array of orders
+ */
+export async function getOrdersByUserId(userId: number): Promise<import('../types').Order[]> {
+  const response = await fetch(`${API_BASE_URL}/Orders/user/${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').Order[]>(response);
+}
+
+/**
+ * Get order by ID
+ * GET /api/Orders/{orderId}
+ * 
+ * @param orderId - The ID of the order
+ * @returns Promise with order details
+ */
+export async function getOrderById(orderId: number): Promise<import('../types').Order> {
+  const response = await fetch(`${API_BASE_URL}/Orders/${orderId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').Order>(response);
+}
+
+/**
+ * Cancel an order
+ * POST /api/Orders/{orderId}/cancel
+ * 
+ * @param orderId - The ID of the order to cancel
+ * @returns Promise with success message
+ */
+export async function cancelOrder(orderId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Orders/${orderId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+

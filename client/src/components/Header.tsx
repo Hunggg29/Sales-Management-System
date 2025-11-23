@@ -6,9 +6,11 @@ import AuthModal from './AuthModal';
 import logo from '../assets/images/logo.jpg';
 import logo2 from '../assets/images/logo2.png';
 import type { User } from '../types';
+import { useCart } from '../contexts/CartContext';
 
 const Header = () => {
   const navigate = useNavigate();
+  const { cartItemCount, refreshCart } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -38,6 +40,7 @@ const Header = () => {
     localStorage.removeItem('authToken');
     setCurrentUser(null);
     setIsProfileDropdownOpen(false);
+    refreshCart();
     navigate('/');
     window.location.reload();
   };
@@ -146,9 +149,11 @@ const Header = () => {
               >
                 <div className="relative">
                   <MdShoppingCart className="w-8 h-8 text-gray-700 group-hover:text-red-600 transition-colors" />
-                  <span className="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    0
-                  </span>
+                  {cartItemCount > 0 && (
+                    <span className="absolute -top-3 -right-3 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      {cartItemCount}
+                    </span>
+                  )}
                 </div>
               </Link>
 
@@ -196,12 +201,12 @@ const Header = () => {
                           </Link>
 
                           <Link
-                            to="/lich-su-giao-dich"
+                            to="/lich-su-don-hang"
                             onClick={() => setIsProfileDropdownOpen(false)}
                             className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
                           >
                             <MdHistory className="w-5 h-5" />
-                            <span className="font-medium">Lịch sử giao dịch</span>
+                            <span className="font-medium">Lịch sử đơn hàng</span>
                           </Link>
 
                           <div className="border-t border-gray-200 my-2"></div>
@@ -369,12 +374,12 @@ const Header = () => {
                   </Link>
 
                   <Link
-                    to="/lich-su-giao-dich"
+                    to="/lich-su-don-hang"
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-2 bg-white text-gray-700 rounded hover:bg-gray-100 transition-colors"
                   >
                     <MdHistory className="w-5 h-5 text-red-600" />
-                    <span className="font-medium">Lịch sử giao dịch</span>
+                    <span className="font-medium">Lịch sử đơn hàng</span>
                   </Link>
 
                   <button

@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import type { Product } from '../types';
+import { toast } from 'react-toastify';
+import { addToCart } from '../services/api';
+import { useCart } from '../contexts/CartContext';
+import type { Product, User } from '../types';
 
 interface ProductCardProps {
   product: Product;
@@ -12,9 +15,33 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, variants }: ProductCardProps) => {
   const navigate = useNavigate();
+  const { refreshCart } = useCart();
 
   const handleCardClick = () => {
     navigate(`/san-pham/${product.productID}`);
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      toast.warning('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!');
+      return;
+    }
+
+    try {
+      const user: User = JSON.parse(userStr);
+      await addToCart(user.userID, {
+        productID: product.productID,
+        quantity: 1
+      });
+      await refreshCart();
+      toast.success(`Đã thêm "${product.productName}" vào giỏ hàng!`);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Không thể thêm vào giỏ hàng';
+      toast.error(errorMessage);
+    }
   };
 
   return (
@@ -37,10 +64,7 @@ const ProductCard = ({ product, variants }: ProductCardProps) => {
         
         {/* Add to Cart Button - Shows on Image Hover */}
         <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent card click when clicking the button
-            alert(`Đã thêm "${product.productName}" vào giỏ hàng!`);
-          }}
+          onClick={handleAddToCart}
           className="absolute inset-0 m-auto w-12 h-12 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-700 hover:scale-110 shadow-lg"
           title="Thêm vào giỏ hàng"
         >

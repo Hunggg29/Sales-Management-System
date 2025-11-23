@@ -2,16 +2,20 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ShoppingCart, Package, Tag } from 'lucide-react';
-import { getProductById } from '../services/api';
-import type { Product } from '../types';
+import { toast } from 'react-toastify';
+import { getProductById, addToCart } from '../services/api';
+import { useCart } from '../contexts/CartContext';
+import type { Product, User } from '../types';
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { refreshCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -38,10 +42,30 @@ const ProductDetailPage = () => {
     fetchProduct();
   }, [id]);
 
-  const handleAddToCart = () => {
-    if (product) {
-      alert(`Đã thêm ${quantity} ${product.productName} vào giỏ hàng!`);
-      // TODO: Implement actual cart functionality
+  const handleAddToCart = async () => {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
+      toast.warning('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!');
+      return;
+    }
+
+    if (!product) return;
+
+    try {
+      setIsAddingToCart(true);
+      const user: User = JSON.parse(userStr);
+      await addToCart(user.userID, {
+        productID: product.productID,
+        quantity: quantity
+      });
+      await refreshCart();
+      toast.success(`Đã thêm ${quantity} ${product.productName} vào giỏ hàng!`);
+      setQuantity(1); // Reset quantity after adding
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Không thể thêm vào giỏ hàng';
+      toast.error(errorMessage);
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -191,15 +215,24 @@ const ProductDetailPage = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleAddToCart}
-              disabled={product.stockQuantity <= 0}
+              disabled={product.stockQuantity <= 0 || isAddingToCart}
               className={`flex-1 flex items-center justify-center gap-2 py-4 px-8 rounded-lg font-bold text-lg transition-all ${
-                product.stockQuantity > 0
+                product.stockQuantity > 0 && !isAddingToCart
                   ? 'bg-red-600 text-white hover:bg-red-700'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <ShoppingCart className="w-6 h-6" />
-              {product.stockQuantity > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}
+              {isAddingToCart ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  <span>Đang thêm...</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-6 h-6" />
+                  <span>{product.stockQuantity > 0 ? 'Thêm vào giỏ hàng' : 'Hết hàng'}</span>
+                </>
+              )}
             </motion.button>
           </div>
 

@@ -12,6 +12,8 @@ namespace SalesManagementAPI.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<Cart> Carts { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<Payment> Payments { get; set; }
@@ -27,6 +29,27 @@ namespace SalesManagementAPI.Data
             // Khóa chính phức hợp cho OrderDetail
             modelBuilder.Entity<OrderDetail>()
                 .HasKey(od => new { od.OrderID, od.ProductID });
+
+            // 1 - 1: Customer → Cart
+            modelBuilder.Entity<Customer>()
+                .HasOne(c => c.Cart)
+                .WithOne(cart => cart.Customer)
+                .HasForeignKey<Cart>(cart => cart.CustomerID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1 - N: Cart → CartItems
+            modelBuilder.Entity<Cart>()
+                .HasMany(c => c.CartItems)
+                .WithOne(ci => ci.Cart)
+                .HasForeignKey(ci => ci.CartID)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // 1 - N: Product → CartItems
+            modelBuilder.Entity<Product>()
+                .HasMany(p => p.CartItems)
+                .WithOne(ci => ci.Product)
+                .HasForeignKey(ci => ci.ProductID)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // 1 - N: Order → Invoices
             modelBuilder.Entity<Order>()
@@ -68,6 +91,15 @@ namespace SalesManagementAPI.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
 
+            // Decimal precision configurations
+            modelBuilder.Entity<CartItem>()
+                .Property(ci => ci.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CartItem>()
+                .Property(ci => ci.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
             modelBuilder.Entity<Product>()
                 .Property(p => p.UnitPrice)
                 .HasColumnType("decimal(18,2)");
@@ -94,6 +126,15 @@ namespace SalesManagementAPI.Data
             modelBuilder.Entity<Invoice>()
                 .Property(i => i.Tax)
                 .HasColumnType("decimal(18,2)");
+
+            // DateTime configurations
+            modelBuilder.Entity<Cart>()
+                .Property(c => c.CreatedAt)
+                .HasColumnType("datetime2");
+
+            modelBuilder.Entity<Cart>()
+                .Property(c => c.UpdatedAt)
+                .HasColumnType("datetime2");
 
             modelBuilder.Entity<Order>()
                 .Property(o => o.OrderDate)

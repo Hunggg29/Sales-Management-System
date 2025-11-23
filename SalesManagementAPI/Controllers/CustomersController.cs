@@ -47,7 +47,7 @@ namespace SalesManagementAPI.Controllers
         {
             var customer = _mapper.Map<Customer>(createCustomerDto);
             await _customerService.CreateCustomerAsync(customer);
-            return CreatedAtAction(nameof(GetCustomerByUserId), new { id = customer.CustomerID }, customer);
+            return CreatedAtAction(nameof(GetCustomerByUserId), new { userId = customer.UserID }, customer);
         }
 
         [HttpPut("{userId}")]

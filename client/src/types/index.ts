@@ -92,3 +92,74 @@ export interface CreateCustomerRequest {
 
 // Customer creation response (API returns the created customer directly)
 export interface CreateCustomerResponse extends Customer {}
+
+// Cart Item
+export interface CartItem {
+  cartItemID: number;
+  productID: number;
+  productName: string;
+  productImage?: string | null;
+  quantity: number;
+  unitPrice: number;
+  subTotal: number;
+  stockQuantity: number;
+}
+
+// Cart
+export interface Cart {
+  cartID: number;
+  customerID: number;
+  createdAt: string;
+  updatedAt: string;
+  cartItems: CartItem[];
+  totalAmount: number;
+  totalItems: number;
+}
+
+// Add to Cart Request
+export interface AddToCartRequest {
+  productID: number;
+  quantity: number;
+}
+
+// Update Cart Item Request
+export interface UpdateCartItemRequest {
+  quantity: number;
+}
+
+// Order
+export interface Order {
+  orderID: number;
+  orderDate: string;
+  totalAmount: number;
+  status: string;
+  payment?: Payment;
+  orderDetails?: OrderDetail[];
+}
+
+// Order Detail
+export interface OrderDetail {
+  productID: number;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+// Payment
+export interface Payment {
+  paymentID: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  paymentDate: string;
+  transactionCode?: string;
+  amount: number;
+}
+
+// Create Order Request
+export interface CreateOrderRequest {
+  paymentMethod: string;
+  shippingAddress?: string | null;
+  note?: string | null;
+}
+

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using SalesManagementAPI.Data;
 using SalesManagementAPI.Mappings;
+using SalesManagementAPI.Services;
 using SalesManagementAPI.Services.Implementations;
 using SalesManagementAPI.Services.Interfaces;
 using AutoMapper;
@@ -51,14 +52,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     });
 });
 
-// Add AutoMapper
-// Install package: dotnet add package AutoMapper.Extensions.Microsoft.DependencyInjection
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IVnPayService, VnPayService>();
 
 builder.Services.AddAuthentication(options =>
 {
