@@ -11,6 +11,7 @@ namespace SalesManagementAPI.Models
         public string? CompanyName { get; set; }
 
         public User? User { get; set; }
+        public Cart? Cart { get; set; }
         public ICollection<Order>? Orders { get; set; }
     }
 }

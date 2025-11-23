@@ -138,3 +138,5 @@ appsettings.Local.json
 # backup files
 *.old
 *.orig
+
+.fake
