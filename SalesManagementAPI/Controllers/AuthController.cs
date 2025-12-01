@@ -36,8 +36,22 @@ namespace SalesManagementAPI.Controllers
         {
             var (success, message) = await _authService.RegisterAsync(request.Username, request.Email, request.Password);
             if (!success) return BadRequest(new { message });
-            return Ok(new {message});
+            return Ok(new { message });
 
         }
+
+        [HttpPost("admin/login")]
+        public async Task<IActionResult> AdminLogin([FromBody] LoginRequestDto request)
+        {
+            var (success, token, role) = await _authService.AdminLoginAsync(request.Email, request.Password);
+            if (!success)
+                return Unauthorized(new { message = token });
+
+            var user = await _authService.GetUserByEmailAsync(request.Email);
+            if (user != null) user.PasswordHash = null;
+
+            return Ok(new { user, token, role });
+        }
+
     }
 }

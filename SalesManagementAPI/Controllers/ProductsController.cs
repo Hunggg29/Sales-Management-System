@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SalesManagementAPI.Models.DTO;
 using SalesManagementAPI.Services.Interfaces;
 
 namespace SalesManagementAPI.Controllers
@@ -50,6 +51,74 @@ namespace SalesManagementAPI.Controllers
         return Ok(new List<object>()); //return empty array instead of 404
       }
       return Ok(results);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateProduct([FromBody] CreateProductDto createProductDto)
+    {
+      try
+      {
+        var product = await _productService.CreateProductAsync(createProductDto);
+        return CreatedAtAction(nameof(GetProductById), new { id = product.ProductID }, product);
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+    }
+
+    [HttpPut("{productId}")]
+    public async Task<IActionResult> UpdateProduct([FromRoute] int productId, [FromBody] UpdateProductDto updateProductDto)
+    {
+      try
+      {
+        var product = await _productService.UpdateProductAsync(productId, updateProductDto);
+        if (product == null)
+        {
+          return NotFound(new { message = "Sản phẩm không tồn tại" });
+        }
+        return Ok(product);
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+    }
+
+    [HttpDelete("{productId}")]
+    public async Task<IActionResult> DeleteProduct([FromRoute] int productId)
+    {
+      try
+      {
+        var success = await _productService.DeleteProductAsync(productId);
+        if (!success)
+        {
+          return NotFound(new { message = "Sản phẩm không tồn tại" });
+        }
+        return Ok(new { message = "Xóa sản phẩm thành công" });
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+    }
+
+    [HttpPatch("{productId}/stock")]
+    public async Task<IActionResult> UpdateProductStock([FromRoute] int productId, [FromBody] UpdateStockDto updateStockDto)
+    {
+      try
+      {
+        var success = await _productService.UpdateProductStockAsync(productId, updateStockDto.StockQuantity);
+        if (!success)
+        {
+          return NotFound(new { message = "Sản phẩm không tồn tại" });
+        }
+        return Ok(new { message = "Cập nhật số lượng thành công" });
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
     }
   }
 }

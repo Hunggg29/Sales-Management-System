@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MdMail, MdLock, MdPerson } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { login, register } from '../services/api';
+import { login, register, adminLogin } from '../services/api';
 import CustomerInfoModal from './CustomerInfoModal';
 import { useCart } from '../contexts/CartContext';
 import { Modal, Input, Button, Alert } from './shared';
@@ -11,9 +11,10 @@ interface AuthModalProps {
   onClose: () => void;
   mode: 'signin' | 'signup';
   onSwitchMode: () => void;
+  isAdminMode?: boolean; // Thêm prop để phân biệt Admin/Customer login
 }
 
-const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
+const AuthModal = ({ isOpen, onClose, mode, onSwitchMode, isAdminMode = false }: AuthModalProps) => {
   const { refreshCart } = useCart();
   const [formData, setFormData] = useState({
     email: '',
@@ -37,6 +38,13 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
     
     try {
       if (mode === 'signup') {
+        // Admin không có chức năng đăng ký
+        if (isAdminMode) {
+          setError('Vui lòng liên hệ quản trị viên để tạo tài khoản');
+          setIsLoading(false);
+          return;
+        }
+
         // Validate confirm password
         if (formData.password !== formData.confirmPassword) {
           setError('Mật khẩu không khớp!');
@@ -51,9 +59,7 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
           formData.password
         );
         
-        // Extract userId from response (assuming it's in the message or add it to backend response)
-        // For now, we'll need to login to get the userId or modify backend to return it
-        // Let's try to login automatically to get userId
+        // Auto login sau khi đăng ký
         const loginResponse = await login(formData.email, formData.password);
         
         // Save token temporarily
@@ -74,14 +80,20 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
         onClose();
         
       } else {
-        // Call login API
-        const response = await login(formData.email, formData.password);
+        // Gọi API login tương ứng
+        const response = isAdminMode 
+          ? await adminLogin(formData.email, formData.password)
+          : await login(formData.email, formData.password);
         
-        // Save token to localStorage (for future authenticated requests)
+        // Save token to localStorage
         localStorage.setItem('authToken', response.token);
         localStorage.setItem('user', JSON.stringify(response.user));
         
-        toast.success(`Đăng nhập thành công! Chào mừng ${response.user.userName}`);
+        // Success message
+        const welcomeMsg = isAdminMode 
+          ? `Chào mừng ${response.user.role} ${response.user.userName}!`
+          : `Đăng nhập thành công! Chào mừng ${response.user.userName}`;
+        toast.success(welcomeMsg);
         
         // Reset form and close
         setFormData({
@@ -92,9 +104,17 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
         });
         onClose();
         
-        // Refresh cart and reload page
-        await refreshCart();
-        window.location.reload();
+        // Refresh cart (chỉ với customer) và reload page
+        if (!isAdminMode) {
+          await refreshCart();
+        }
+        
+        // Redirect admin đến dashboard
+        if (isAdminMode) {
+          window.location.href = '/admin/dashboard';
+        } else {
+          window.location.reload();
+        }
       }
     } catch (err) {
       // Display error message
@@ -125,7 +145,7 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title={mode === 'signin' ? 'Đăng nhập' : 'Đăng ký'}
+        title={isAdminMode ? (mode === 'signin' ? 'Đăng nhập Admin' : 'Đăng ký Admin') : (mode === 'signin' ? 'Đăng nhập' : 'Đăng ký')}
       >
         <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
           {error && (
@@ -143,7 +163,7 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
             icon={<MdMail className="w-4 h-4 sm:w-5 sm:h-5" />}
           />
 
-          {mode === 'signup' && (
+          {mode === 'signup' && !isAdminMode && (
             <Input
               label="Tên đăng nhập"
               type="text"
@@ -167,7 +187,7 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
             icon={<MdLock className="w-4 h-4 sm:w-5 sm:h-5" />}
           />
 
-          {mode === 'signup' && (
+          {mode === 'signup' && !isAdminMode && (
             <Input
               label="Xác nhận mật khẩu"
               type="password"
@@ -191,18 +211,20 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
             {mode === 'signin' ? 'Đăng nhập' : 'Đăng ký'}
           </Button>
 
-          <div className="text-center pt-3 sm:pt-4">
-            <p className="text-xs sm:text-sm text-gray-600">
-              {mode === 'signin' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}{' '}
-              <button
-                type="button"
-                onClick={onSwitchMode}
-                className="text-red-600 font-semibold hover:text-red-700 hover:underline"
-              >
-                {mode === 'signin' ? 'Đăng ký ngay' : 'Đăng nhập'}
-              </button>
-            </p>
-          </div>
+          {!isAdminMode && (
+            <div className="text-center pt-3 sm:pt-4">
+              <p className="text-xs sm:text-sm text-gray-600">
+                {mode === 'signin' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'}{' '}
+                <button
+                  type="button"
+                  onClick={onSwitchMode}
+                  className="text-red-600 font-semibold hover:text-red-700 hover:underline"
+                >
+                  {mode === 'signin' ? 'Đăng ký ngay' : 'Đăng nhập'}
+                </button>
+              </p>
+            </div>
+          )}
         </form>
       </Modal>
 

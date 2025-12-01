@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import HeroSlider from '../components/HeroSlider';
-import CategorySidebar from '../components/CategorySidebar';
-import ProductsGrid from '../components/ProductsGrid';
-import NewsSection from '../components/NewsSection';
-import { getAllCategories, getCategoriesWithProducts } from '../services/api';
-import type { Category, Product } from '../types';
-import { newsArticles } from '../data/newsData';
+import HeroSlider from '../../components/HeroSlider';
+import CategorySidebar from '../../components/CategorySidebar';
+import ProductsGrid from '../../components/ProductsGrid';
+import NewsSection from '../../components/NewsSection';
+import { getAllCategories, getCategoriesWithProducts } from '../../services/api';
+import type { Category, Product } from '../../types';
+import { newsArticles } from '../../data/newsData';
 
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getNewsById, getRelatedNews } from '../data/newsData';
+import { getNewsById, getRelatedNews } from '../../data/newsData';
 import { useEffect } from 'react';
 
 const NewsDetailPage = () => {

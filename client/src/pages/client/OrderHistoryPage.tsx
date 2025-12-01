@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MdShoppingBag, MdRemoveRedEye } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { getOrdersByUserId } from '../services/api';
-import type { Order, User } from '../types';
+import { getOrdersByUserId } from '../../services/api';
+import type { Order, User } from '../../types';
 
 const OrderHistoryPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);

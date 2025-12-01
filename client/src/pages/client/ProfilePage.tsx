@@ -2,8 +2,8 @@ import { motion } from 'framer-motion';
 import { MdPerson, MdPhone, MdLocationOn, MdBusiness, MdEmail, MdSave, MdEdit } from 'react-icons/md';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCustomerByUserId, updateCustomerByUserId } from '../services/api';
-import type { Customer, User } from '../types';
+import { getCustomerByUserId, updateCustomerByUserId } from '../../services/api';
+import type { Customer, User } from '../../types';
 
 const ProfilePage = () => {
   const navigate = useNavigate();

@@ -11,7 +11,7 @@ using BC = BCrypt.Net.BCrypt;
 namespace SalesManagementAPI.Services.Implementations
 {
     public class AuthService : IAuthService
-    {   
+    {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
 
@@ -24,7 +24,7 @@ namespace SalesManagementAPI.Services.Implementations
         public async Task<(bool success, string token)> LoginAsync(string email, string password)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if(user == null || !BC.Verify(password, user.PasswordHash))
+            if (user == null || !BC.Verify(password, user.PasswordHash))
             {
                 return (false, "Sai mật khẩu hoặc email");
             }
@@ -83,6 +83,59 @@ namespace SalesManagementAPI.Services.Implementations
         public async Task<User> GetUserByEmailAsync(string email)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<(bool success, string token, string role)> AdminLoginAsync(string email, string password)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null || !BC.Verify(password, user.PasswordHash))
+            {
+                return (false, "Email hoặc mật khẩu không đúng", "");
+            }
+
+            // Kiểm tra role - chỉ Admin hoặc Staff mới được đăng nhập
+            if (user.Role != "Admin" && user.Role != "Staff")
+            {
+                return (false, "Bạn không có quyền truy cập vào trang quản trị", "");
+            }
+
+            if (!user.IsActive)
+            {
+                return (false, "Tài khoản đã bị vô hiệu hóa", "");
+            }
+
+            var token = GenerateJwtToken(user);
+            return (true, token, user.Role);
+        }
+
+        public async Task<(bool success, string message)> RegisterAdminAsync(string username, string email, string password, string role)
+        {
+            var existingUser = await _context.Users.AnyAsync(u => u.Email == email);
+            if (existingUser)
+            {
+                return (false, "Email đã được sử dụng");
+            }
+
+            // Validate role
+            if (role != "Admin" && role != "Staff")
+            {
+                return (false, "Role không hợp lệ. Chỉ chấp nhận Admin hoặc Staff");
+            }
+
+            var user = new User
+            {
+                UserName = username,
+                Email = email,
+                PasswordHash = BC.HashPassword(password),
+                Role = role,
+                CreatedAt = DateTime.Now,
+                IsActive = true
+            };
+
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+            return (true, $"{role} registered successfully");
         }
 
         private string GenerateJwtToken(User user)

@@ -49,7 +49,7 @@ namespace SalesManagementAPI.Controllers
 
                 // 3. Tạo payment URL
                 var paymentUrl = _vnPayService.CreatePaymentUrl(model, HttpContext);
-                
+
                 return Ok(new { paymentUrl });
             }
             catch (Exception ex)
@@ -80,7 +80,7 @@ namespace SalesManagementAPI.Controllers
 
                 // 3. Lấy orderId từ response
                 var orderId = int.Parse(response.OrderId);
-                
+
                 // 4. Cập nhật payment và order status
                 var payment = await _context.Payments
                     .FirstOrDefaultAsync(p => p.OrderID == orderId);
@@ -112,7 +112,7 @@ namespace SalesManagementAPI.Controllers
 
                 // 5. Redirect về frontend
                 var frontendBaseUrl = _configuration["PaymentCallBack:FrontendUrl"] ?? "http://localhost:5173";
-                
+
                 if (response.VnPayResponseCode == "00")
                     return Redirect($"{frontendBaseUrl}/don-hang/{orderId}");
                 else

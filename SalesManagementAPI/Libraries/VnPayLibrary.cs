@@ -105,7 +105,7 @@ namespace SalesManagementAPI.Libraries
             {
                 // Query string: URL encode
                 data.Append(WebUtility.UrlEncode(key) + "=" + WebUtility.UrlEncode(value) + "&");
-                
+
                 // Sign data: KHÔNG URL encode
                 signData.Append(key + "=" + value + "&");
             }
@@ -129,7 +129,7 @@ namespace SalesManagementAPI.Libraries
 
             // Tạo hash từ signData (không encode)
             var vnpSecureHash = HmacSha512(vnpHashSecret, signDataString);
-            
+
             Console.WriteLine($"\n=== SECURE HASH ===");
             Console.WriteLine(vnpSecureHash);
             Console.WriteLine("==================\n");

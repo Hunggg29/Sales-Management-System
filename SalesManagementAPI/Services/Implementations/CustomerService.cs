@@ -13,6 +13,7 @@ namespace SalesManagementAPI.Services.Implementations
         {
             _context = context;
         }
+
         public async Task<IEnumerable<Customer>> GetAllCustomerAsync()
         {
             return await _context.Customers.ToListAsync();
@@ -50,6 +51,26 @@ namespace SalesManagementAPI.Services.Implementations
             await _context.SaveChangesAsync();
 
             return existCustomer;
+        }
+
+        public async Task<bool> DeleteCustomerByUserIdAsync(int userId)
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.UserID == userId);
+            if (customer == null)
+            {
+                return false;
+            }
+
+            // Check if customer has orders
+            var hasOrders = await _context.Orders.AnyAsync(o => o.CustomerID == customer.CustomerID);
+            if (hasOrders)
+            {
+                throw new InvalidOperationException("Không thể xóa khách hàng đã có đơn hàng");
+            }
+
+            _context.Customers.Remove(customer);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

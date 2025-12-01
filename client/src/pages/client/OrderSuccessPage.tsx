@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MdCheckCircle, MdArrowBack, MdLocalShipping } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { getOrderById } from '../services/api';
-import type { Order } from '../types';
+import { getOrderById } from '../../services/api';
+import type { Order } from '../../types';
 
 const OrderSuccessPage = () => {
   const { orderId } = useParams<{ orderId: string }>();

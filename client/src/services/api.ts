@@ -85,6 +85,28 @@ export async function register(
 }
 
 /**
+ * Admin/Staff Login
+ * POST /api/Auth/admin/login
+ * 
+ * @param email - Admin/Staff email
+ * @param password - Admin/Staff password
+ * @returns Promise with user data, JWT token, and role
+ */
+export async function adminLogin(email: string, password: string): Promise<LoginResponse> {
+  const requestBody: LoginRequest = { email, password };
+
+  const response = await fetch(`${API_BASE_URL}/Auth/admin/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  return handleResponse<LoginResponse>(response);
+}
+
+/**
  * CATEGORY ENDPOINTS
  */
 
@@ -120,6 +142,68 @@ export async function getCategoriesWithProducts(): Promise<Category[]> {
   });
 
   return handleResponse<Category[]>(response);
+}
+
+/**
+ * Create a new category
+ * POST /api/Categories
+ * 
+ * @param categoryData - Category information
+ * @returns Promise with created category data
+ */
+export async function createCategory(
+  categoryData: { categoryName: string; description?: string }
+): Promise<Category> {
+  const response = await fetch(`${API_BASE_URL}/Categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(categoryData),
+  });
+
+  return handleResponse<Category>(response);
+}
+
+/**
+ * Update a category
+ * PUT /api/Categories/{id}
+ * 
+ * @param categoryId - The ID of the category to update
+ * @param categoryData - Updated category information
+ * @returns Promise with updated category data
+ */
+export async function updateCategory(
+  categoryId: number,
+  categoryData: { categoryName: string; description?: string }
+): Promise<Category> {
+  const response = await fetch(`${API_BASE_URL}/Categories/${categoryId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(categoryData),
+  });
+
+  return handleResponse<Category>(response);
+}
+
+/**
+ * Delete a category
+ * DELETE /api/Categories/{id}
+ * 
+ * @param categoryId - The ID of the category to delete
+ * @returns Promise with success message
+ */
+export async function deleteCategory(categoryId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Categories/${categoryId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{ message: string }>(response);
 }
 
 /**
@@ -184,6 +268,23 @@ export async function searchProductsByName(searchTerm: string): Promise<import('
  */
 
 /**
+ * Get all customers
+ * GET /api/Customers
+ * 
+ * @returns Promise with array of all customers
+ */
+export async function getAllCustomers(): Promise<import('../types').Customer[]> {
+  const response = await fetch(`${API_BASE_URL}/Customers`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').Customer[]>(response);
+}
+
+/**
  * Create a new customer
  * POST /api/Customers
  * 
@@ -243,6 +344,24 @@ export async function updateCustomerByUserId(
   });
 
   return handleResponse<import('../types').Customer>(response);
+}
+
+/**
+ * Delete a customer
+ * DELETE /api/Customers/{userId}
+ * 
+ * @param userId - The ID of the user/customer to delete
+ * @returns Promise with success message
+ */
+export async function deleteCustomer(userId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Customers/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{ message: string }>(response);
 }
 
 /**
@@ -431,6 +550,111 @@ export async function cancelOrder(orderId: number): Promise<{ message: string }>
     headers: {
       'Content-Type': 'application/json',
     },
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+/**
+ * ADMIN PRODUCT ENDPOINTS
+ */
+
+/**
+ * Create a new product
+ * POST /api/Products
+ * 
+ * @param productData - Product information
+ * @returns Promise with created product data
+ */
+export async function createProduct(
+  productData: {
+    productName: string;
+    description: string;
+    unitPrice: number;
+    stockQuantity: number;
+    categoryID: number;
+    imageURL: string;
+    unit: string;
+  }
+): Promise<import('../types').Product> {
+  const response = await fetch(`${API_BASE_URL}/Products`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(productData),
+  });
+
+  return handleResponse<import('../types').Product>(response);
+}
+
+/**
+ * Update a product
+ * PUT /api/Products/{id}
+ * 
+ * @param productId - The ID of the product to update
+ * @param productData - Updated product information
+ * @returns Promise with updated product data
+ */
+export async function updateProduct(
+  productId: number,
+  productData: {
+    productName: string;
+    description: string;
+    unitPrice: number;
+    stockQuantity: number;
+    categoryID: number;
+    imageURL: string;
+    unit: string;
+  }
+): Promise<import('../types').Product> {
+  const response = await fetch(`${API_BASE_URL}/Products/${productId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(productData),
+  });
+
+  return handleResponse<import('../types').Product>(response);
+}
+
+/**
+ * Delete a product
+ * DELETE /api/Products/{id}
+ * 
+ * @param productId - The ID of the product to delete
+ * @returns Promise with success message
+ */
+export async function deleteProduct(productId: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Products/${productId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+/**
+ * Update product stock quantity
+ * PATCH /api/Products/{id}/stock
+ * 
+ * @param productId - The ID of the product
+ * @param stockQuantity - New stock quantity
+ * @returns Promise with success message
+ */
+export async function updateProductStock(
+  productId: number,
+  stockQuantity: number
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Products/${productId}/stock`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ stockQuantity }),
   });
 
   return handleResponse<{ message: string }>(response);

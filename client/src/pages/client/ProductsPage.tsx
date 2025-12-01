@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import CategorySidebar from '../components/CategorySidebar';
-import ProductsGrid from '../components/ProductsGrid';
-import { getAllProducts, getAllCategories } from '../services/api';
-import type { Product, Category } from '../types';
+import CategorySidebar from '../../components/CategorySidebar';
+import ProductsGrid from '../../components/ProductsGrid';
+import { getAllProducts, getAllCategories } from '../../services/api';
+import type { Product, Category } from '../../types';
 
 const ProductsPage = () => {
   const [searchParams] = useSearchParams();

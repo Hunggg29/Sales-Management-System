@@ -30,7 +30,6 @@ namespace SalesManagementAPI.Controllers
             return Ok(customers);
         }
 
-
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetCustomerByUserId(int userId)
         {
@@ -45,23 +44,57 @@ namespace SalesManagementAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerDto createCustomerDto)
         {
-            var customer = _mapper.Map<Customer>(createCustomerDto);
-            await _customerService.CreateCustomerAsync(customer);
-            return CreatedAtAction(nameof(GetCustomerByUserId), new { userId = customer.UserID }, customer);
+            try
+            {
+                var customer = _mapper.Map<Customer>(createCustomerDto);
+                var createdCustomer = await _customerService.CreateCustomerAsync(customer);
+                return CreatedAtAction(nameof(GetCustomerByUserId), new { userId = createdCustomer.UserID }, createdCustomer);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{userId}")]
         public async Task<IActionResult> UpdateCustomerByUserId([FromRoute] int userId, [FromBody] UpdateCustomerDto updateCustomerDto)
         {
-            var customer = _mapper.Map<Customer>(updateCustomerDto);
-            customer = await _customerService.UpdateCustomerByUserIdAsync(userId, customer);
-            if (customer == null)
+            try
             {
-                return NotFound(new { message = "Không tìm thấy tài khoản khách hàng" });
+                var customer = _mapper.Map<Customer>(updateCustomerDto);
+                customer = await _customerService.UpdateCustomerByUserIdAsync(userId, customer);
+                if (customer == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy tài khoản khách hàng" });
+                }
+                return Ok(customer);
             }
-            return Ok(customer);
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> DeleteCustomer(int userId)
+        {
+            try
+            {
+                var result = await _customerService.DeleteCustomerByUserIdAsync(userId);
+                if (!result)
+                {
+                    return NotFound(new { message = "Không tìm thấy khách hàng" });
+                }
+                return Ok(new { message = "Xóa khách hàng thành công" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi xóa khách hàng: " + ex.Message });
+            }
+        }
     }
 }

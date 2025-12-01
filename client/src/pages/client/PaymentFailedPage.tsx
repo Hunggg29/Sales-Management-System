@@ -1,6 +1,6 @@
 import { useSearchParams, Link } from 'react-router-dom';
 import { MdError } from 'react-icons/md';
-import { Button } from '../components/shared';
+import { Button } from '../../components/shared';
 
 const PaymentFailedPage = () => {
   const [searchParams] = useSearchParams();

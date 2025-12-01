@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MdDelete, MdShoppingCart, MdAdd, MdRemove, MdArrowBack } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { getCartByUserId, updateCartItem, removeCartItem, clearCart } from '../services/api';
-import type { Cart, User } from '../types';
-import { useCart } from '../contexts/CartContext';
-import CheckoutModal from '../components/CheckoutModal';
+import { getCartByUserId, updateCartItem, removeCartItem, clearCart } from '../../services/api';
+import type { Cart, User } from '../../types';
+import { useCart } from '../../contexts/CartContext';
+import CheckoutModal from '../../components/CheckoutModal';
 
 const CartPage = () => {
   const { refreshCart } = useCart();

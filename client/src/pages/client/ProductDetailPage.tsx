@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ShoppingCart, Package, Tag } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { getProductById, addToCart } from '../services/api';
-import { useCart } from '../contexts/CartContext';
-import type { Product, User } from '../types';
+import { getProductById, addToCart } from '../../services/api';
+import { useCart } from '../../contexts/CartContext';
+import type { Product, User } from '../../types';
 
 const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
