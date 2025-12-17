@@ -660,4 +660,46 @@ export async function updateProductStock(
   return handleResponse<{ message: string }>(response);
 }
 
+/**
+ * ADMIN ORDER ENDPOINTS
+ */
 
+/**
+ * Get all orders (Admin only)
+ * GET /api/Orders
+ * 
+ * @returns Promise with array of all orders
+ */
+export async function getAllOrders(): Promise<import('../types').Order[]> {
+  const response = await fetch(`${API_BASE_URL}/Orders`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').Order[]>(response);
+}
+
+/**
+ * Update order status (Admin only)
+ * PUT /api/Orders/{orderId}/status
+ * 
+ * @param orderId - The ID of the order
+ * @param status - New status (e.g., "Confirmed", "Cancelled")
+ * @returns Promise with success message
+ */
+export async function updateOrderStatus(
+  orderId: number,
+  status: string
+): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Orders/${orderId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  return handleResponse<{ message: string }>(response);
+}

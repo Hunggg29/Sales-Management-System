@@ -91,7 +91,7 @@ export interface CreateCustomerRequest {
 }
 
 // Customer creation response (API returns the created customer directly)
-export interface CreateCustomerResponse extends Customer {}
+export interface CreateCustomerResponse extends Customer { }
 
 // Cart Item
 export interface CartItem {
@@ -133,6 +133,7 @@ export interface Order {
   orderDate: string;
   totalAmount: number;
   status: string;
+  customer?: Customer;
   payment?: Payment;
   orderDetails?: OrderDetail[];
 }
@@ -144,6 +145,7 @@ export interface OrderDetail {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  stockQuantity: number;
 }
 
 // Payment

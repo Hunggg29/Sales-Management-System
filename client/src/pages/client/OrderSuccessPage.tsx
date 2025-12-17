@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MdCheckCircle, MdArrowBack, MdLocalShipping } from 'react-icons/md';
+import { MdArrowBack, MdLocalShipping, MdHistory, MdCheckCircle } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { getOrderById } from '../../services/api';
+import { OrderStatusBadge } from '../../components/shared';
 import type { Order } from '../../types';
 
 const OrderSuccessPage = () => {
@@ -14,7 +15,7 @@ const OrderSuccessPage = () => {
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
-      
+
       try {
         const data = await getOrderById(parseInt(orderId));
         setOrder(data);
@@ -48,19 +49,55 @@ const OrderSuccessPage = () => {
     return methods[method] || method;
   };
 
+  const getPageTitle = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'Đơn hàng đang chờ duyệt!';
+      case 'Confirmed':
+        return 'Đơn hàng đã được xác nhận!';
+      case 'Processing':
+        return 'Đơn hàng đang được vận chuyển!';
+      case 'Completed':
+        return 'Đơn hàng giao thành công!';
+      case 'Cancelled':
+        return 'Đơn hàng đã bị hủy!';
+      default:
+        return 'Thông tin đơn hàng';
+    }
+  };
+
+  const getPageMessage = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'Cảm ơn bạn đã đặt hàng. Đơn hàng của bạn đã được ghi nhận và đang chờ nhân viên xác nhận.';
+      case 'Confirmed':
+        return 'Đơn hàng của bạn đã được nhân viên xác nhận và đang được chuẩn bị.';
+      case 'Processing':
+        return 'Đơn hàng của bạn đang trên đường vận chuyển đến địa chỉ nhận hàng.';
+      case 'Completed':
+        return 'Đơn hàng đã được giao thành công. Cảm ơn bạn đã tin tưởng và mua sắm tại cửa hàng!';
+      case 'Cancelled':
+        return 'Rất tiếc, đơn hàng của bạn đã bị hủy. Vui lòng liên hệ bộ phận CSKH nếu có thắc mắc.';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-3xl">
-        {/* Success Header */}
+        {/* Status Header */}
         <div className="bg-white rounded-xl shadow-md p-8 mb-6 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-            <MdCheckCircle className="w-12 h-12 text-green-600" />
+          <div className="flex justify-center mb-4">
+            <div className="transform scale-150">
+              <OrderStatusBadge status={order.status} />
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Đặt hàng thành công!
+            {getPageTitle(order.status)}
           </h1>
           <p className="text-gray-600 mb-4">
-            Cảm ơn bạn đã đặt hàng. Đơn hàng của bạn đang được xử lý.
+            {getPageMessage(order.status)}
           </p>
           <div className="inline-block bg-gray-100 px-6 py-3 rounded-lg">
             <p className="text-sm text-gray-600">Mã đơn hàng</p>
@@ -84,9 +121,7 @@ const OrderSuccessPage = () => {
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Trạng thái:</span>
-              <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
-                {order.status}
-              </span>
+              <OrderStatusBadge status={order.status} />
             </div>
             <div className="flex justify-between py-2 border-b">
               <span className="text-gray-600">Phương thức thanh toán:</span>
@@ -104,19 +139,27 @@ const OrderSuccessPage = () => {
 
           {/* Products */}
           <div className="mt-6">
-            <h3 className="font-semibold text-gray-800 mb-3">Sản phẩm đã đặt:</h3>
+            <h3 className="font-semibold text-gray-800 mb-3">Sản phẩm:</h3>
             <div className="space-y-3">
               {order.orderDetails?.map((item) => (
-                <div key={item.productID} className="flex justify-between items-center py-3 border-b">
+                <div key={item.productID} className={`flex justify-between items-center py-3 border-b ${order.status === 'Cancelled' ? 'opacity-50' : ''}`}>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-800">{item.productName}</p>
+                    <p className={`font-medium text-gray-800 ${order.status === 'Cancelled' ? 'line-through' : ''}`}>
+                      {item.productName}
+                    </p>
                     <p className="text-sm text-gray-600">
                       {item.unitPrice.toLocaleString('vi-VN')}₫ x {item.quantity}
                     </p>
                   </div>
-                  <p className="font-semibold text-red-600">
-                    {item.totalPrice.toLocaleString('vi-VN')}₫
-                  </p>
+                  <div className="text-right">
+                    <p className={`font-semibold text-red-600 ${order.status === 'Cancelled' ? 'line-through' : ''}`}>
+                      {item.totalPrice.toLocaleString('vi-VN')}₫
+                    </p>
+                    {order.status === 'Cancelled' && <span className="text-xs text-red-500 font-medium">Đã hủy</span>}
+                    {order.status === 'Confirmed' && <span className="text-xs text-green-500 font-medium">Đã xác nhận</span>}
+                    {order.status === 'Processing' && <span className="text-xs text-blue-500 font-medium flex items-center justify-end gap-1"><MdLocalShipping className="w-3 h-3" /> Đang giao</span>}
+                    {order.status === 'Completed' && <span className="text-xs text-emerald-500 font-medium flex items-center justify-end gap-1"><MdCheckCircle className="w-3 h-3" /> Thành công</span>}
+                  </div>
                 </div>
               ))}
             </div>
@@ -144,9 +187,10 @@ const OrderSuccessPage = () => {
           </button>
           <button
             onClick={() => navigate('/lich-su-don-hang')}
-            className="flex-1 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
           >
-            Xem đơn hàng của tôi
+            <MdHistory className="w-5 h-5" />
+            Lịch sử đơn hàng
           </button>
         </div>
       </div>
@@ -155,3 +199,4 @@ const OrderSuccessPage = () => {
 };
 
 export default OrderSuccessPage;
+

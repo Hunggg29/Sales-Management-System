@@ -135,12 +135,38 @@ namespace SalesManagementAPI.Services.Implementations
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
-            return orders.Select(o => new OrderResponseDto
+            return orders.Select(o => MapToOrderResponse(o)).ToList();
+        }
+
+        public async Task<List<OrderResponseDto>> GetAllOrdersAsync()
+        {
+            var orders = await _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.Product)
+                .Include(o => o.Payments)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+
+            return orders.Select(o => MapToOrderResponse(o)).ToList();
+        }
+
+        private OrderResponseDto MapToOrderResponse(Order o)
+        {
+            return new OrderResponseDto
             {
                 OrderID = o.OrderID,
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
                 Status = o.Status,
+                Customer = o.Customer != null ? new CreateCustomerDto
+                {
+                    UserID = o.Customer.UserID,
+                    FullName = o.Customer.FullName,
+                    Phone = o.Customer.Phone ?? "",
+                    Address = o.Customer.Address ?? "",
+                    CompanyName = o.Customer.CompanyName ?? ""
+                } : null,
                 Payment = o.Payments?.FirstOrDefault() != null ? new PaymentResponseDto
                 {
                     PaymentID = o.Payments.First().PaymentID,
@@ -156,14 +182,16 @@ namespace SalesManagementAPI.Services.Implementations
                     ProductName = od.Product?.ProductName ?? "",
                     Quantity = od.Quantity,
                     UnitPrice = od.UnitPrice,
-                    TotalPrice = od.Quantity * od.UnitPrice
+                    TotalPrice = od.Quantity * od.UnitPrice,
+                    StockQuantity = od.Product?.StockQuantity ?? 0
                 }).ToList()
-            }).ToList();
+            };
         }
 
         public async Task<OrderResponseDto?> GetOrderByIdAsync(int orderId)
         {
             var order = await _context.Orders
+                .Include(o => o.Customer)
                 .Include(o => o.OrderDetails)
                     .ThenInclude(od => od.Product)
                 .Include(o => o.Payments)
@@ -172,30 +200,7 @@ namespace SalesManagementAPI.Services.Implementations
             if (order == null)
                 return null;
 
-            return new OrderResponseDto
-            {
-                OrderID = order.OrderID,
-                OrderDate = order.OrderDate,
-                TotalAmount = order.TotalAmount,
-                Status = order.Status,
-                Payment = order.Payments?.FirstOrDefault() != null ? new PaymentResponseDto
-                {
-                    PaymentID = order.Payments.First().PaymentID,
-                    PaymentMethod = order.Payments.First().PaymentMethod,
-                    PaymentStatus = order.Payments.First().PaymentStatus,
-                    PaymentDate = order.Payments.First().PaymentDate,
-                    TransactionCode = order.Payments.First().TransactionCode,
-                    Amount = order.Payments.First().Amount
-                } : null,
-                OrderDetails = order.OrderDetails?.Select(od => new OrderDetailDto
-                {
-                    ProductID = od.ProductID,
-                    ProductName = od.Product?.ProductName ?? "",
-                    Quantity = od.Quantity,
-                    UnitPrice = od.UnitPrice,
-                    TotalPrice = od.Quantity * od.UnitPrice
-                }).ToList()
-            };
+            return MapToOrderResponse(order);
         }
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, string status)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MdShoppingBag, MdRemoveRedEye } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { getOrdersByUserId } from '../../services/api';
+import { OrderStatusBadge } from '../../components/shared';
 import type { Order, User } from '../../types';
 
 const OrderHistoryPage = () => {
@@ -30,26 +31,6 @@ const OrderHistoryPage = () => {
 
     fetchOrders();
   }, []);
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      Pending: 'bg-yellow-100 text-yellow-800',
-      Processing: 'bg-blue-100 text-blue-800',
-      Completed: 'bg-green-100 text-green-800',
-      Cancelled: 'bg-red-100 text-red-800',
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getStatusText = (status: string) => {
-    const texts: Record<string, string> = {
-      Pending: 'Chờ xử lý',
-      Processing: 'Đang xử lý',
-      Completed: 'Hoàn thành',
-      Cancelled: 'Đã hủy',
-    };
-    return texts[status] || status;
-  };
 
   if (isLoading) {
     return (
@@ -105,9 +86,7 @@ const OrderHistoryPage = () => {
                       </p>
                     </div>
                   </div>
-                  <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
-                    {getStatusText(order.status)}
-                  </span>
+                  <OrderStatusBadge status={order.status} />
                 </div>
 
                 {/* Order Items */}

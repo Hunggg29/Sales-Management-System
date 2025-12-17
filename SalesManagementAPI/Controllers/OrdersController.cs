@@ -41,6 +41,13 @@ namespace SalesManagementAPI.Controllers
             return Ok(orders);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAllOrders()
+        {
+            var orders = await _orderService.GetAllOrdersAsync();
+            return Ok(orders);
+        }
+
         [HttpGet("{orderId}")]
         public async Task<IActionResult> GetOrderById([FromRoute] int orderId)
         {

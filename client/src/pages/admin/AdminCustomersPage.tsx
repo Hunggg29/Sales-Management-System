@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   MdAdd,
   MdEdit,
   MdDelete,
   MdSearch,
-  MdClose,
   MdSave,
   MdPerson,
   MdPhone,
   MdLocationOn,
   MdBusiness,
+  MdVisibility,
 } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import type { Customer } from '../../types';
+import type { Customer, Order } from '../../types';
 import {
   getAllCustomers,
   createCustomer,
   updateCustomerByUserId,
   deleteCustomer,
+  getOrdersByUserId,
 } from '../../services/api';
 import AdminLayout from '../../components/AdminLayout';
+import { Modal, OrderStatusBadge } from '../../components/shared';
 
 interface CustomerFormData {
   userID: number;
@@ -34,7 +35,9 @@ const AdminCustomersPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Edit/Create Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [formData, setFormData] = useState<CustomerFormData>({
     userID: 0,
@@ -43,6 +46,12 @@ const AdminCustomersPage = () => {
     address: '',
     companyName: '',
   });
+
+  // Details Modal State
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [viewingCustomer, setViewingCustomer] = useState<Customer | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -61,7 +70,7 @@ const AdminCustomersPage = () => {
     }
   };
 
-  const handleOpenModal = (customer?: Customer) => {
+  const handleOpenEditModal = (customer?: Customer) => {
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
@@ -81,12 +90,33 @@ const AdminCustomersPage = () => {
         companyName: '',
       });
     }
-    setIsModalOpen(true);
+    setIsEditModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
     setEditingCustomer(null);
+  };
+
+  const handleViewDetails = async (customer: Customer) => {
+    setViewingCustomer(customer);
+    setIsDetailsModalOpen(true);
+    setIsLoadingOrders(true);
+    try {
+      const orders = await getOrdersByUserId(customer.userID);
+      setCustomerOrders(orders);
+    } catch (error) {
+      toast.error('Không thể tải lịch sử đơn hàng');
+      console.error(error);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setViewingCustomer(null);
+    setCustomerOrders([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,7 +142,7 @@ const AdminCustomersPage = () => {
         });
         toast.success('Thêm khách hàng thành công');
       }
-      handleCloseModal();
+      handleCloseEditModal();
       fetchCustomers();
     } catch (error: any) {
       toast.error(error.message || 'Có lỗi xảy ra');
@@ -171,7 +201,7 @@ const AdminCustomersPage = () => {
           </div>
 
           <button
-            onClick={() => handleOpenModal()}
+            onClick={() => handleOpenEditModal()}
             className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
           >
             <MdAdd className="w-5 h-5" />
@@ -303,7 +333,14 @@ const AdminCustomersPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleOpenModal(customer)}
+                            onClick={() => handleViewDetails(customer)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            <MdVisibility className="w-4 h-4" />
+                            <span className="hidden sm:inline">Chi tiết</span>
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(customer)}
                             className="inline-flex items-center gap-1 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           >
                             <MdEdit className="w-4 h-4" />
@@ -323,6 +360,7 @@ const AdminCustomersPage = () => {
                     </tr>
                   ))
                 )}
+
               </tbody>
             </table>
           </div>
@@ -336,144 +374,207 @@ const AdminCustomersPage = () => {
         )}
       </div>
 
-      {/* Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleCloseModal}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+      {/* Edit/Create Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        title={editingCustomer ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {!editingCustomer && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                User ID <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={formData.userID || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, userID: parseInt(e.target.value) || 0 })
+                }
+                placeholder="Nhập User ID"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                ID của tài khoản người dùng trong hệ thống
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Họ và tên <span className="text-red-600">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.fullName}
+              onChange={(e) =>
+                setFormData({ ...formData, fullName: e.target.value })
+              }
+              placeholder="Nhập họ và tên"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
             />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Số điện thoại
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                placeholder="0123456789"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Tên công ty
+              </label>
+              <input
+                type="text"
+                value={formData.companyName}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyName: e.target.value })
+                }
+                placeholder="Tên công ty (nếu có)"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Địa chỉ
+            </label>
+            <textarea
+              rows={3}
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              placeholder="Nhập địa chỉ đầy đủ"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="submit"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-sm"
             >
-              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    {editingCustomer ? 'Chỉnh sửa khách hàng' : 'Thêm khách hàng mới'}
-                  </h2>
-                  <button
-                    onClick={handleCloseModal}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <MdClose className="w-6 h-6 text-gray-600" />
-                  </button>
+              <MdSave className="w-5 h-5" />
+              {editingCustomer ? 'Cập nhật' : 'Thêm mới'}
+            </button>
+            <button
+              type="button"
+              onClick={handleCloseEditModal}
+              className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
+            >
+              Hủy
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* View Details Modal */}
+      <Modal
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
+        title="Chi tiết khách hàng"
+      >
+        {viewingCustomer && (
+          <div className="space-y-6">
+            {/* Customer Info */}
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3 mb-3">
+                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-xl">
+                  {viewingCustomer.fullName.charAt(0).toUpperCase()}
                 </div>
-
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                  {!editingCustomer && (
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        User ID <span className="text-red-600">*</span>
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min="1"
-                        value={formData.userID || ''}
-                        onChange={(e) =>
-                          setFormData({ ...formData, userID: parseInt(e.target.value) || 0 })
-                        }
-                        placeholder="Nhập User ID"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">
-                        ID của tài khoản người dùng trong hệ thống
-                      </p>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Họ và tên <span className="text-red-600">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.fullName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, fullName: e.target.value })
-                      }
-                      placeholder="Nhập họ và tên"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Số điện thoại
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
-                        placeholder="0123456789"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Tên công ty
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.companyName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, companyName: e.target.value })
-                        }
-                        placeholder="Tên công ty (nếu có)"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Địa chỉ
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
-                      placeholder="Nhập địa chỉ đầy đủ"
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <button
-                      type="submit"
-                      className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-sm"
-                    >
-                      <MdSave className="w-5 h-5" />
-                      {editingCustomer ? 'Cập nhật' : 'Thêm mới'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCloseModal}
-                      className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </form>
+                <div>
+                  <h3 className="font-bold text-lg text-gray-800">{viewingCustomer.fullName}</h3>
+                  <p className="text-sm text-gray-500">ID: #{viewingCustomer.customerID}</p>
+                </div>
               </div>
-            </motion.div>
-          </>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MdPhone className="text-gray-400" />
+                  <span>{viewingCustomer.phone || 'Chưa có SĐT'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MdBusiness className="text-gray-400" />
+                  <span>{viewingCustomer.companyName || 'Cá nhân'}</span>
+                </div>
+                <div className="col-span-1 sm:col-span-2 flex items-start gap-2 text-gray-700">
+                  <MdLocationOn className="text-gray-400 mt-0.5" />
+                  <span>{viewingCustomer.address || 'Chưa có địa chỉ'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Order History */}
+            <div>
+              <h3 className="font-bold text-gray-800 mb-3 text-lg">Lịch sử đơn hàng</h3>
+              {isLoadingOrders ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                </div>
+              ) : customerOrders.length === 0 ? (
+                <div className="text-center py-4 text-gray-500 italic">
+                  Khách hàng này chưa có đơn hàng nào
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
+                      <tr>
+                        <th className="px-4 py-2 border-b">ID Đơn</th>
+                        <th className="px-4 py-2 border-b">Ngày đặt</th>
+                        <th className="px-4 py-2 border-b text-right">Tổng tiền</th>
+                        <th className="px-4 py-2 border-b text-center">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {customerOrders.map(order => (
+                        <tr key={order.orderID} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 font-medium">#{order.orderID}</td>
+                          <td className="px-4 py-2 text-gray-600">
+                            {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                          </td>
+                          <td className="px-4 py-2 text-red-600 font-semibold text-right">
+                            {order.totalAmount.toLocaleString('vi-VN')}₫
+                          </td>
+                          <td className="px-4 py-2 text-center">
+                            <OrderStatusBadge status={order.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={handleCloseDetailsModal}
+                className="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </Modal>
     </AdminLayout>
   );
 };

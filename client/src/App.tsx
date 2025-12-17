@@ -29,6 +29,7 @@ import {
   AdminProductsPage,
   AdminCustomersPage,
   AdminCategoriesPage,
+  AdminOrdersPage,
 } from './pages/admin';
 
 function App() {
@@ -42,7 +43,8 @@ function App() {
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/customers" element={<AdminCustomersPage />} />
           <Route path="/admin/categories" element={<AdminCategoriesPage />} />
-          
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+
           {/* Customer Routes - Có Header/Footer */}
           <Route path="/*" element={
             <div className="flex flex-col min-h-screen">

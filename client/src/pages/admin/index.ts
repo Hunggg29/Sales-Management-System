@@ -4,3 +4,4 @@ export { default as AdminDashboard } from './AdminDashboard';
 export { default as AdminProductsPage } from './AdminProductsPage';
 export { default as AdminCustomersPage } from './AdminCustomersPage';
 export { default as AdminCategoriesPage } from './AdminCategoriesPage';
+export { default as AdminOrdersPage } from './AdminOrdersPage';
