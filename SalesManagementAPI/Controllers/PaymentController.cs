@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using SalesManagementAPI.Data;
-using Microsoft.EntityFrameworkCore;
+using SalesManagementAPI.Models.DTO;
 using SalesManagementAPI.Services.Interfaces;
-using SalesManagementAPI.Models.VnPay;
 
 namespace SalesManagementAPI.Controllers
 {
@@ -10,120 +8,59 @@ namespace SalesManagementAPI.Controllers
     [ApiController]
     public class PaymentController : ControllerBase
     {
-        private readonly IVnPayService _vnPayService;
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _configuration;
+        private readonly IPaymentService _paymentService;
 
-        public PaymentController(
-            IVnPayService vnPayService,
-            ApplicationDbContext context,
-            IConfiguration configuration)
+        public PaymentController(IPaymentService paymentService)
         {
-            _vnPayService = vnPayService;
-            _context = context;
-            _configuration = configuration;
+            _paymentService = paymentService;
         }
 
         /// <summary>
-        /// Tạo URL thanh toán VNPay cho đơn hàng
+        /// Tạo QR code cho thanh toán chuyển khoản ngân hàng
         /// </summary>
-        [HttpPost("create-vnpay-url")]
-        public async Task<IActionResult> CreateVNPayUrl([FromQuery] int orderId)
+        [HttpPost("create-bank-transfer-qr")]
+        public async Task<IActionResult> CreateBankTransferQR([FromQuery] int orderId)
         {
             try
             {
-                // 1. Lấy thông tin order từ database
-                var order = await _context.Orders.FindAsync(orderId);
-                if (order == null)
-                    return NotFound(new { message = "Không tìm thấy đơn hàng" });
-
-                // 2. Tạo model cho VNPay
-                var model = new PaymentInformationModel
-                {
-                    OrderId = orderId, // QUAN TRỌNG: truyen OrderId
-                    OrderType = "other",
-                    Amount = (double)order.TotalAmount,
-                    OrderDescription = $"Thanh toan don hang #{orderId}",
-                    Name = $"DH{orderId}"
-                };
-
-                // 3. Tạo payment URL
-                var paymentUrl = _vnPayService.CreatePaymentUrl(model, HttpContext);
-
-                return Ok(new { paymentUrl });
+                var response = await _paymentService.CreateBankTransferQRAsync(orderId);
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error creating VNPay URL: {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
         }
 
         /// <summary>
-        /// Callback từ VNPay sau khi thanh toán
+        /// Xác nhận thanh toán chuyển khoản đã hoàn thành (Admin/Staff)
         /// </summary>
-        [HttpGet("vnpay-return")]
-        public async Task<IActionResult> VNPayReturn()
+        [HttpPost("confirm-bank-transfer")]
+        public async Task<IActionResult> ConfirmBankTransfer([FromBody] ConfirmPaymentDto dto)
         {
             try
             {
-                // 1. Xử lý response từ VNPay
-                var response = _vnPayService.PaymentExecute(Request.Query);
-
-                // 2. Kiểm tra chữ ký
-                if (!response.Success)
-                {
-                    Console.WriteLine("VNPay signature validation failed");
-                    var frontendUrl = _configuration["PaymentCallBack:FrontendUrl"] ?? "http://localhost:5173";
-                    return Redirect($"{frontendUrl}/don-hang/failed?message=Invalid+signature");
-                }
-
-                // 3. Lấy orderId từ response
-                var orderId = int.Parse(response.OrderId);
-
-                // 4. Cập nhật payment và order status
-                var payment = await _context.Payments
-                    .FirstOrDefaultAsync(p => p.OrderID == orderId);
-
-                if (payment != null)
-                {
-                    if (response.VnPayResponseCode == "00") // Thanh toán thành công
-                    {
-                        payment.PaymentStatus = "Completed";
-                        payment.PaymentDate = DateTime.Now;
-                        payment.TransactionCode = response.TransactionId;
-
-                        var order = await _context.Orders.FindAsync(orderId);
-                        if (order != null)
-                        {
-                            order.Status = "Processing";
-                        }
-
-                        Console.WriteLine($"Payment completed for Order #{orderId}");
-                    }
-                    else // Thanh toán thất bại
-                    {
-                        payment.PaymentStatus = "Failed";
-                        Console.WriteLine($"Payment failed for Order #{orderId}, Code: {response.VnPayResponseCode}");
-                    }
-
-                    await _context.SaveChangesAsync();
-                }
-
-                // 5. Redirect về frontend
-                var frontendBaseUrl = _configuration["PaymentCallBack:FrontendUrl"] ?? "http://localhost:5173";
-
-                if (response.VnPayResponseCode == "00")
-                    return Redirect($"{frontendBaseUrl}/don-hang/{orderId}");
-                else
-                    return Redirect($"{frontendBaseUrl}/don-hang/failed?message=Payment+failed&code={response.VnPayResponseCode}");
+                var response = await _paymentService.ConfirmBankTransferAsync(dto);
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in VNPay callback: {ex.Message}");
-                var frontendUrl = _configuration["PaymentCallBack:FrontendUrl"] ?? "http://localhost:5173";
-                return Redirect($"{frontendUrl}/don-hang/failed?message={ex.Message}");
+                return BadRequest(new { message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Kiểm tra trạng thái thanh toán
+        /// </summary>
+        [HttpGet("check-payment-status/{orderId}")]
+        public async Task<IActionResult> CheckPaymentStatus(int orderId)
+        {
+            var status = await _paymentService.GetPaymentStatusAsync(orderId);
+
+            if (status == null)
+                return NotFound(new { message = "Không tìm thấy thông tin thanh toán" });
+
+            return Ok(status);
         }
     }
 }

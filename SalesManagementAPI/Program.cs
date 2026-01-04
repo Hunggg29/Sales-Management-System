@@ -7,6 +7,7 @@ using SalesManagementAPI.Mappings;
 using SalesManagementAPI.Services;
 using SalesManagementAPI.Services.Implementations;
 using SalesManagementAPI.Services.Interfaces;
+using SalesManagementAPI.Hubs;
 using AutoMapper;
 
 
@@ -26,6 +27,9 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+// Add SignalR
+builder.Services.AddSignalR();
 
 // Add CORS to allow frontend to access API
 builder.Services.AddCors(options =>
@@ -60,7 +64,8 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IVnPayService, VnPayService>();
+builder.Services.AddScoped<IVietQRService, VietQRService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -101,5 +106,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR Hub
+app.MapHub<OrderNotificationHub>("/hubs/order-notifications");
 
 app.Run();

@@ -19,6 +19,8 @@ import {
   deleteProduct,
 } from '../../services/api';
 import AdminLayout from '../../components/AdminLayout';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { Pagination } from '../../components/shared';
 
 interface ProductFormData {
   productName: string;
@@ -36,6 +38,8 @@ const AdminProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<ProductFormData>({
@@ -119,13 +123,21 @@ const AdminProductsPage = () => {
     }
   };
 
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    productId: number | null;
+    productName: string;
+  }>({ isOpen: false, productId: null, productName: '' });
+
   const handleDelete = async (productId: number, productName: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa sản phẩm "${productName}"?`)) {
-      return;
-    }
+    setDeleteDialog({ isOpen: true, productId, productName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.productId) return;
 
     try {
-      await deleteProduct(productId);
+      await deleteProduct(deleteDialog.productId);
       toast.success('Xóa sản phẩm thành công');
       fetchData();
     } catch (error: any) {
@@ -138,6 +150,16 @@ const AdminProductsPage = () => {
     const matchesCategory = selectedCategory === null || product.categoryID === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory]);
 
   if (loading) {
     return (
@@ -267,7 +289,7 @@ const AdminProductsPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredProducts.length === 0 ? (
+                {paginatedProducts.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-500">
@@ -278,7 +300,7 @@ const AdminProductsPage = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((product) => (
+                  paginatedProducts.map((product) => (
                     <tr key={product.productID} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <img
@@ -355,6 +377,14 @@ const AdminProductsPage = () => {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredProducts.length}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         </div>
 
         {/* Results Info */}
@@ -564,6 +594,22 @@ const AdminProductsPage = () => {
           </>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="Xác nhận xóa sản phẩm"
+        message={`Bạn có chắc muốn xóa sản phẩm "${deleteDialog.productName}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        onConfirm={() => {
+          handleConfirmDelete();
+          setDeleteDialog({ isOpen: false, productId: null, productName: '' });
+        }}
+        onCancel={() =>
+          setDeleteDialog({ isOpen: false, productId: null, productName: '' })
+        }
+        type="danger"
+      />
     </AdminLayout>
   );
 };

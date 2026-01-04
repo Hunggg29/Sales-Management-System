@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import { CartProvider } from './contexts/CartContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 
 // Client Pages
 import {
@@ -24,26 +25,31 @@ import {
 
 // Admin Pages
 import {
-  AdminLoginPage,
   AdminDashboard,
   AdminProductsPage,
   AdminCustomersPage,
   AdminCategoriesPage,
   AdminOrdersPage,
+  AdminReportsPage,
+  AdminPaymentsPage,
+  AdminSettingsPage,
 } from './pages/admin';
 
 function App() {
   return (
-    <CartProvider>
-      <Router>
+    <SettingsProvider>
+      <CartProvider>
+        <Router>
         <Routes>
           {/* Admin Routes - Không có Header/Footer */}
-          <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/customers" element={<AdminCustomersPage />} />
           <Route path="/admin/categories" element={<AdminCategoriesPage />} />
           <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/reports" element={<AdminReportsPage />} />
+          <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+          <Route path="/admin/settings" element={<AdminSettingsPage />} />
 
           {/* Customer Routes - Có Header/Footer */}
           <Route path="/*" element={
@@ -85,6 +91,7 @@ function App() {
         />
       </Router>
     </CartProvider>
+    </SettingsProvider>
   );
 }
 

@@ -3,8 +3,10 @@ import { MapPin, Mail, Phone, Clock, Send, User, MessageSquare } from 'lucide-re
 import { FaFacebookF, FaTelegramPlane } from 'react-icons/fa';
 import { SiZalo } from 'react-icons/si';
 import { useState } from 'react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const ContactPage = () => {
+  const { storeInfo } = useSettings();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -43,7 +45,7 @@ const ContactPage = () => {
     {
       icon: MapPin,
       title: 'Địa chỉ',
-      content: 'Xã Thanh Trì - Hà Nội',
+      content: storeInfo.address,
       link: 'https://maps.app.goo.gl/3eHsJtQoABStC4yj7',
     },
     {
@@ -55,14 +57,14 @@ const ContactPage = () => {
     {
       icon: Phone,
       title: 'Điện thoại',
-      content: '0243.681.6262',
-      link: 'tel:0243.681.6262',
+      content: storeInfo.phone,
+      link: `tel:${storeInfo.phone}`,
     },
     {
       icon: Mail,
       title: 'Email',
-      content: 'thanglongtape@gmail.com',
-      link: 'mailto:thanglongtape@gmail.com',
+      content: storeInfo.email,
+      link: `mailto:${storeInfo.email}`,
     },
     {
       icon: Mail,

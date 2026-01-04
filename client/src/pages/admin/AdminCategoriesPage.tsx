@@ -19,6 +19,7 @@ import {
   deleteCategory,
 } from '../../services/api';
 import AdminLayout from '../../components/AdminLayout';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 interface CategoryFormData {
   categoryName: string;
@@ -99,13 +100,21 @@ const AdminCategoriesPage = () => {
     }
   };
 
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    categoryId: number | null;
+    categoryName: string;
+  }>({ isOpen: false, categoryId: null, categoryName: '' });
+
   const handleDelete = async (categoryId: number, categoryName: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa danh mục "${categoryName}"?`)) {
-      return;
-    }
+    setDeleteDialog({ isOpen: true, categoryId, categoryName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.categoryId) return;
 
     try {
-      await deleteCategory(categoryId);
+      await deleteCategory(deleteDialog.categoryId);
       toast.success('Xóa danh mục thành công');
       fetchCategories();
     } catch (error: any) {
@@ -399,6 +408,22 @@ const AdminCategoriesPage = () => {
           </>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="Xác nhận xóa danh mục"
+        message={`Bạn có chắc muốn xóa danh mục "${deleteDialog.categoryName}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        onConfirm={() => {
+          handleConfirmDelete();
+          setDeleteDialog({ isOpen: false, categoryId: null, categoryName: '' });
+        }}
+        onCancel={() =>
+          setDeleteDialog({ isOpen: false, categoryId: null, categoryName: '' })
+        }
+        type="danger"
+      />
     </AdminLayout>
   );
 };

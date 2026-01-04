@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom';
 import { MapPin, Mail, Phone } from 'lucide-react';
 import { FaFacebookF, FaTelegramPlane } from 'react-icons/fa';
 import { SiZalo } from 'react-icons/si';
+import { useSettings } from '../contexts/SettingsContext';
 
 const Footer = () => {
+  const { storeInfo } = useSettings();
   const menuItems = [
     { name: 'Trang chủ', path: '/' },
     { name: 'Giới thiệu', path: '/gioi-thieu' },
@@ -31,7 +33,7 @@ const Footer = () => {
             <div className="space-y-4 mt-6">
               <div>
                 <p className="text-[#333333] font-bold text-xl leading-tight mb-4">
-                  CÔNG TY TNHH KAROTA VIỆT NAM
+                  {storeInfo.storeName}
                 </p>
               </div>
               
@@ -39,7 +41,7 @@ const Footer = () => {
                 <MapPin className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-[#555] text-lg font-medium">Địa chỉ:</p>
-                  <p className="text-[#333] text-lg">Xã Thanh Trì - Hà Nội</p>
+                  <p className="text-[#333] text-lg">{storeInfo.address}</p>
                 </div>
               </div>
 
@@ -47,8 +49,8 @@ const Footer = () => {
                 <Mail className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-[#555] text-lg font-medium">Email:</p>
-                  <a href="mailto:thanglongtape@gmail.com" className="text-red-600 text-lg hover:underline block">
-                    thanglongtape@gmail.com
+                  <a href={`mailto:${storeInfo.email}`} className="text-red-600 text-lg hover:underline block">
+                    {storeInfo.email}
                   </a>
                   <a href="mailto:karota.vietnam@gmail.com" className="text-red-600 text-lg hover:underline block">
                     karota.vietnam@gmail.com
@@ -60,8 +62,8 @@ const Footer = () => {
                 <Phone className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
                 <div>
                   <p className="text-[#555] text-lg font-medium">Điện thoại:</p>
-                  <a href="tel:0243.681.6262" className="text-[#333] text-lg hover:text-red-600 transition-colors block">
-                    0243.681.6262
+                  <a href={`tel:${storeInfo.phone}`} className="text-[#333] text-lg hover:text-red-600 transition-colors block">
+                    {storeInfo.phone}
                   </a>
                 </div>
               </div>

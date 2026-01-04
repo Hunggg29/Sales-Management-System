@@ -19,11 +19,11 @@ namespace SalesManagementAPI.Services.Implementations
         {
             // Use execution strategy for transaction with retry logic
             var strategy = _context.Database.CreateExecutionStrategy();
-            
+
             return await strategy.ExecuteAsync(async () =>
             {
                 using var transaction = await _context.Database.BeginTransactionAsync();
-                
+
                 try
                 {
                     // Get customer by userId
@@ -94,6 +94,7 @@ namespace SalesManagementAPI.Services.Implementations
                         OrderDate = order.OrderDate,
                         TotalAmount = order.TotalAmount,
                         Status = order.Status,
+                        PaymentMethod = payment.PaymentMethod,
                         Payment = new PaymentResponseDto
                         {
                             PaymentID = payment.PaymentID,
@@ -159,6 +160,7 @@ namespace SalesManagementAPI.Services.Implementations
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
                 Status = o.Status,
+                PaymentMethod = o.Payments?.FirstOrDefault()?.PaymentMethod ?? "COD",
                 Customer = o.Customer != null ? new CreateCustomerDto
                 {
                     UserID = o.Customer.UserID,
@@ -224,7 +226,7 @@ namespace SalesManagementAPI.Services.Implementations
                 return false;
 
             order.Status = "Cancelled";
-            
+
             if (order.Payments != null)
             {
                 foreach (var payment in order.Payments)

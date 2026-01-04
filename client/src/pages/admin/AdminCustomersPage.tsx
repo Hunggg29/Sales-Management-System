@@ -21,7 +21,8 @@ import {
   getOrdersByUserId,
 } from '../../services/api';
 import AdminLayout from '../../components/AdminLayout';
-import { Modal, OrderStatusBadge } from '../../components/shared';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { Modal, OrderStatusBadge, Pagination } from '../../components/shared';
 
 interface CustomerFormData {
   userID: number;
@@ -35,6 +36,8 @@ const AdminCustomersPage = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Edit/Create Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -149,13 +152,21 @@ const AdminCustomersPage = () => {
     }
   };
 
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    userId: number | null;
+    fullName: string;
+  }>({ isOpen: false, userId: null, fullName: '' });
+
   const handleDelete = async (userId: number, fullName: string) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa khách hàng "${fullName}"?`)) {
-      return;
-    }
+    setDeleteDialog({ isOpen: true, userId, fullName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteDialog.userId) return;
 
     try {
-      await deleteCustomer(userId);
+      await deleteCustomer(deleteDialog.userId);
       toast.success('Xóa khách hàng thành công');
       fetchCustomers();
     } catch (error: any) {
@@ -168,6 +179,16 @@ const AdminCustomersPage = () => {
     customer.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCustomers = filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   if (loading) {
     return (
@@ -279,7 +300,7 @@ const AdminCustomersPage = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCustomers.length === 0 ? (
+                {paginatedCustomers.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-500">
@@ -290,7 +311,7 @@ const AdminCustomersPage = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredCustomers.map((customer) => (
+                  paginatedCustomers.map((customer) => (
                     <tr key={customer.customerID} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm font-semibold text-gray-900">
@@ -364,6 +385,14 @@ const AdminCustomersPage = () => {
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredCustomers.length}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         </div>
 
         {/* Results Info */}
@@ -575,6 +604,22 @@ const AdminCustomersPage = () => {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        title="Xác nhận xóa khách hàng"
+        message={`Bạn có chắc muốn xóa khách hàng "${deleteDialog.fullName}"?`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        onConfirm={() => {
+          handleConfirmDelete();
+          setDeleteDialog({ isOpen: false, userId: null, fullName: '' });
+        }}
+        onCancel={() =>
+          setDeleteDialog({ isOpen: false, userId: null, fullName: '' })
+        }
+        type="danger"
+      />
     </AdminLayout>
   );
 };

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { MdVisibility, MdCheck, MdClose, MdLocalShipping, MdCheckCircle } from 'react-icons/md';
 import AdminLayout from '../../components/AdminLayout';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { Pagination } from '../../components/shared';
 import { getAllOrders, updateOrderStatus } from '../../services/api';
 import type { Order } from '../../types';
 
@@ -10,6 +12,16 @@ const AdminOrdersPage = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    message: string;
+    orderId: number | null;
+    status: string | null;
+    type: 'warning' | 'danger' | 'info' | 'success';
+  }>({ isOpen: false, message: '', orderId: null, status: null, type: 'warning' });
 
   const fetchOrders = async () => {
     try {
@@ -24,17 +36,58 @@ const AdminOrdersPage = () => {
 
   useEffect(() => {
     fetchOrders();
+    
+    // Listen for new order events from AdminLayout
+    const handleNewOrder = () => {
+      console.log('📦 Orders page: Refreshing due to new order');
+      fetchOrders();
+    };
+    
+    window.addEventListener('newOrder', handleNewOrder as EventListener);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('newOrder', handleNewOrder as EventListener);
+    };
   }, []);
 
   const handleUpdateStatus = async (orderId: number, status: string) => {
-    try {
-      if (!confirm(`Bạn có chắc muốn chuyển trạng thái đơn hàng thành "${status}"?`)) return;
+    const statusLabels: Record<string, string> = {
+      'Pending': 'Chờ duyệt',
+      'Confirmed': 'Đã duyệt',
+      'Cancelled': 'Đã hủy',
+      'Processing': 'Đang xử lý',
+      'Completed': 'Hoàn thành',
+    };
 
-      await updateOrderStatus(orderId, status);
+    // Xác định màu dialog dựa trên trạng thái mới
+    let dialogType: 'warning' | 'danger' | 'info' | 'success' = 'warning';
+    if (status === 'Cancelled') {
+      dialogType = 'danger';
+    } else if (status === 'Processing') {
+      dialogType = 'info';
+    } else if (status === 'Confirmed' || status === 'Completed') {
+      dialogType = 'success';
+    }
+
+    setConfirmDialog({
+      isOpen: true,
+      message: `Bạn có chắc muốn chuyển trạng thái đơn hàng thành "${statusLabels[status]}"?`,
+      orderId,
+      status,
+      type: dialogType
+    });
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!confirmDialog.orderId || !confirmDialog.status) return;
+
+    try {
+      await updateOrderStatus(confirmDialog.orderId, confirmDialog.status);
       toast.success('Cập nhật trạng thái thành công');
       fetchOrders();
-      if (selectedOrder?.orderID === orderId) {
-        setSelectedOrder(prev => prev ? { ...prev, status } : null);
+      if (selectedOrder?.orderID === confirmDialog.orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, status: confirmDialog.status! } : null);
       }
     } catch (error) {
       toast.error('Cập nhật thất bại');
@@ -57,16 +110,28 @@ const AdminOrdersPage = () => {
     'Completed': 'Hoàn thành',
   };
 
-  const filteredOrders = orders.filter(order =>
-    order.customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.orderID.toString().includes(searchTerm)
-  );
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.orderID.toString().includes(searchTerm);
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   return (
     <AdminLayout title="Quản lý đơn hàng">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {/* Search Bar */}
-        <div className="p-4 border-b border-gray-100">
+        {/* Search Bar and Filters */}
+        <div className="p-4 border-b border-gray-100 space-y-4">
           <div className="relative max-w-md">
             <input
               type="text"
@@ -89,6 +154,70 @@ const AdminOrdersPage = () => {
               />
             </svg>
           </div>
+
+          {/* Status Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                statusFilter === 'all'
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả ({orders.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Pending')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                statusFilter === 'Pending'
+                  ? 'bg-yellow-500 text-white'
+                  : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+              }`}
+            >
+              Chờ duyệt ({orders.filter(o => o.status === 'Pending').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Confirmed')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                statusFilter === 'Confirmed'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+              }`}
+            >
+              Đã duyệt ({orders.filter(o => o.status === 'Confirmed').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Processing')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                statusFilter === 'Processing'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+              }`}
+            >
+              Đang xử lý ({orders.filter(o => o.status === 'Processing').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Completed')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                statusFilter === 'Completed'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-green-50 text-green-700 hover:bg-green-100'
+              }`}
+            >
+              Hoàn thành ({orders.filter(o => o.status === 'Completed').length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('Cancelled')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                statusFilter === 'Cancelled'
+                  ? 'bg-red-500 text-white'
+                  : 'bg-red-50 text-red-700 hover:bg-red-100'
+              }`}
+            >
+              Đã hủy ({orders.filter(o => o.status === 'Cancelled').length})
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -109,14 +238,14 @@ const AdminOrdersPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredOrders.length === 0 ? (
+                {paginatedOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                       Không tìm thấy đơn hàng nào phù hợp
                     </td>
                   </tr>
                 ) : (
-                  filteredOrders.map((order) => (
+                  paginatedOrders.map((order) => (
                     <tr key={order.orderID} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         #{order.orderID}
@@ -184,6 +313,17 @@ const AdminOrdersPage = () => {
               </tbody>
             </table>
           </div>
+        )}
+        
+        {!isLoading && filteredOrders.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            totalItems={filteredOrders.length}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         )}
       </div>
 
@@ -285,6 +425,18 @@ const AdminOrdersPage = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Xác nhận thay đổi"
+        message={confirmDialog.message}
+        confirmText="Đồng ý"
+        cancelText="Hủy"
+        type={confirmDialog.type}
+        onConfirm={handleConfirmStatusChange}
+        onCancel={() => setConfirmDialog({ isOpen: false, message: '', orderId: null, status: null, type: 'warning' })}
+      />
     </AdminLayout>
   );
 };

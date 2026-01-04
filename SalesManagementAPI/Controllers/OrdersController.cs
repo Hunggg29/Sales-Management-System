@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using SalesManagementAPI.Hubs;
 using SalesManagementAPI.Models.DTO;
 using SalesManagementAPI.Services.Interfaces;
 
@@ -9,10 +11,12 @@ namespace SalesManagementAPI.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IOrderService _orderService;
+        private readonly IHubContext<OrderNotificationHub> _hubContext;
 
-        public OrdersController(IOrderService orderService)
+        public OrdersController(IOrderService orderService, IHubContext<OrderNotificationHub> hubContext)
         {
             _orderService = orderService;
+            _hubContext = hubContext;
         }
 
         [HttpPost("create/{userId}")]
@@ -23,8 +27,20 @@ namespace SalesManagementAPI.Controllers
                 // Log để debug
                 Console.WriteLine($"Creating order for userId: {userId}");
                 Console.WriteLine($"PaymentMethod: {createOrderDto.PaymentMethod}");
-                
+
                 var order = await _orderService.CreateOrderFromCartAsync(userId, createOrderDto);
+
+                // Gửi thông báo real-time tới admin
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderNotification", new
+                {
+                    orderId = order.OrderID,
+                    customerName = order.Customer?.FullName,
+                    totalAmount = order.TotalAmount,
+                    paymentMethod = order.PaymentMethod,
+                    orderDate = order.OrderDate,
+                    message = $"Đơn hàng mới #{order.OrderID} từ {order.Customer?.FullName}"
+                });
+
                 return Ok(order);
             }
             catch (Exception ex)

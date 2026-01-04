@@ -165,3 +165,45 @@ export interface CreateOrderRequest {
   note?: string | null;
 }
 
+// Statistics Types
+export interface DashboardStats {
+  totalOrders: number;
+  totalCustomers: number;
+  totalProducts: number;
+  totalRevenue: number;
+  ordersGrowthPercentage: number;
+  customersGrowthPercentage: number;
+  productsGrowthPercentage: number;
+  revenueGrowthPercentage: number;
+}
+
+export interface MonthlyRevenue {
+  year: number;
+  month: number;
+  monthName: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface RecentOrder {
+  orderID: number;
+  customerName: string;
+  totalAmount: number;
+  status: string;
+  orderDate: string;
+}
+
+export interface TopProduct {
+  productID: number;
+  productName: string;
+  totalSold: number;
+  totalRevenue: number;
+  imageURL?: string | null;
+}
+
+export interface DetailedReport {
+  monthlyRevenues: MonthlyRevenue[];
+  topProducts: TopProduct[];
+  recentOrders: RecentOrder[];
+  overallStats: DashboardStats;
+}

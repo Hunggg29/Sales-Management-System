@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { Award, Users, Target, TrendingUp, CheckCircle, MapPin, Phone, Mail } from 'lucide-react';
+import { useSettings } from '../../contexts/SettingsContext';
 
 const AboutPage = () => {
+  const { storeInfo } = useSettings();
   const fadeInUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0 },
@@ -242,7 +244,7 @@ const AboutPage = () => {
                   <MapPin className="w-8 h-8" />
                 </div>
                 <h3 className="font-bold text-lg">Địa chỉ</h3>
-                <p className="text-white/90">Xã Thanh Trì, Hà Nội</p>
+                <p className="text-white/90">{storeInfo.address}</p>
               </div>
 
               <div className="flex flex-col items-center gap-3">
@@ -260,8 +262,8 @@ const AboutPage = () => {
                   <Mail className="w-8 h-8" />
                 </div>
                 <h3 className="font-bold text-lg">Email</h3>
-                <a href="mailto:thanglongtape@gmail.com" className="text-white/90 hover:text-white">
-                  thanglongtape@gmail.com
+                <a href={`mailto:${storeInfo.email}`} className="text-white/90 hover:text-white">
+                  {storeInfo.email}
                 </a>
                 <a href="mailto:karota.vietnam@gmail.com" className="text-white/90 hover:text-white">
                   karota.vietnam@gmail.com 

@@ -1,0 +1,212 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Modal, Button } from '../components/shared';
+import { MdContentCopy, MdCheckCircle, MdInfo } from 'react-icons/md';
+import { toast } from 'react-toastify';
+
+interface QRPaymentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  qrData: {
+    qrCodeUrl: string;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    amount: number;
+    description: string;
+    orderId: number;
+  } | null;
+}
+
+const QRPaymentModal = ({ isOpen, onClose, qrData }: QRPaymentModalProps) => {
+  const navigate = useNavigate();
+  const [countdown, setCountdown] = useState(600); // 10 phút = 600 giây
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isOpen]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`Đã sao chép ${label}`);
+  };
+
+  const handleViewOrder = () => {
+    if (qrData) {
+      onClose();
+      navigate(`/don-hang/${qrData.orderId}`);
+    }
+  };
+
+  if (!qrData) return null;
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Thanh toán chuyển khoản"
+      closeOnBackdropClick={false}
+    >
+      <div className="space-y-6">
+        {/* Thông báo */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+          <MdInfo className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-800">
+            <p className="font-semibold mb-1">Hướng dẫn thanh toán:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Quét mã QR bằng app ngân hàng của bạn</li>
+              <li>Hoặc chuyển khoản theo thông tin bên dưới</li>
+              <li>Đơn hàng sẽ được xử lý sau khi nhận được thanh toán</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Countdown Timer */}
+        <div className="text-center">
+          <p className="text-sm text-gray-600 mb-1">Thời gian còn lại</p>
+          <p className={`text-2xl font-bold ${countdown < 60 ? 'text-red-600' : 'text-gray-800'}`}>
+            {formatTime(countdown)}
+          </p>
+        </div>
+
+        {/* QR Code */}
+        <div className="flex justify-center">
+          <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+            <img
+              src={qrData.qrCodeUrl}
+              alt="QR Code thanh toán"
+              className="w-64 h-64 object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Thông tin chuyển khoản */}
+        <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+          <h3 className="font-semibold text-gray-800 mb-3">Thông tin chuyển khoản</h3>
+          
+          {/* Ngân hàng */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Ngân hàng:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">{qrData.bankName}</span>
+            </div>
+          </div>
+
+          {/* Số tài khoản */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Số tài khoản:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold font-mono">{qrData.accountNumber}</span>
+              <button
+                onClick={() => copyToClipboard(qrData.accountNumber, 'số tài khoản')}
+                className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+                title="Sao chép số tài khoản"
+              >
+                <MdContentCopy className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Tên tài khoản */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Tên tài khoản:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">{qrData.accountName}</span>
+              <button
+                onClick={() => copyToClipboard(qrData.accountName, 'tên tài khoản')}
+                className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+                title="Sao chép tên tài khoản"
+              >
+                <MdContentCopy className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Số tiền */}
+          <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+            <span className="text-sm text-gray-600">Số tiền:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-lg text-red-600">
+                {qrData.amount.toLocaleString('vi-VN')}₫
+              </span>
+              <button
+                onClick={() => copyToClipboard(qrData.amount.toString(), 'số tiền')}
+                className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+                title="Sao chép số tiền"
+              >
+                <MdContentCopy className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Nội dung chuyển khoản */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600">Nội dung:</span>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold font-mono text-red-600">{qrData.description}</span>
+              <button
+                onClick={() => copyToClipboard(qrData.description, 'nội dung chuyển khoản')}
+                className="p-1.5 hover:bg-gray-200 rounded transition-colors"
+                title="Sao chép nội dung"
+              >
+                <MdContentCopy className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Lưu ý quan trọng */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <MdCheckCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-semibold mb-1">Lưu ý quan trọng:</p>
+              <p>
+                Vui lòng <strong>giữ nguyên nội dung chuyển khoản "{qrData.description}"</strong> để 
+                hệ thống tự động xác nhận thanh toán của bạn.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <Button
+            variant="secondary"
+            onClick={onClose}
+            fullWidth
+          >
+            Đóng
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleViewOrder}
+            fullWidth
+          >
+            Xem đơn hàng
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+export default QRPaymentModal;

@@ -6,6 +6,7 @@ namespace SalesManagementAPI.Models.DTO
         public DateTime OrderDate { get; set; }
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = null!;
+        public string PaymentMethod { get; set; } = null!;
         public CreateCustomerDto? Customer { get; set; }
         public PaymentResponseDto? Payment { get; set; }
         public List<OrderDetailDto>? OrderDetails { get; set; }

@@ -85,28 +85,6 @@ export async function register(
 }
 
 /**
- * Admin/Staff Login
- * POST /api/Auth/admin/login
- * 
- * @param email - Admin/Staff email
- * @param password - Admin/Staff password
- * @returns Promise with user data, JWT token, and role
- */
-export async function adminLogin(email: string, password: string): Promise<LoginResponse> {
-  const requestBody: LoginRequest = { email, password };
-
-  const response = await fetch(`${API_BASE_URL}/Auth/admin/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-
-  return handleResponse<LoginResponse>(response);
-}
-
-/**
  * CATEGORY ENDPOINTS
  */
 
@@ -703,3 +681,293 @@ export async function updateOrderStatus(
 
   return handleResponse<{ message: string }>(response);
 }
+
+/**
+ * PAYMENT ENDPOINTS
+ */
+
+/**
+ * Create VietQR payment code for bank transfer
+ * POST /api/Payment/create-bank-transfer-qr
+ * 
+ * @param orderId - The ID of the order
+ * @returns Promise with QR code URL and payment details
+ */
+export async function createBankTransferQR(orderId: number): Promise<{
+  success: boolean;
+  qrCodeUrl: string;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  amount: number;
+  description: string;
+  orderId: number;
+  message: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Payment/create-bank-transfer-qr?orderId=${orderId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<{
+    success: boolean;
+    qrCodeUrl: string;
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    amount: number;
+    description: string;
+    orderId: number;
+    message: string;
+  }>(response);
+}
+
+/**
+ * STATISTICS ENDPOINTS
+ */
+
+/**
+ * Get dashboard statistics
+ * GET /api/Statistics/dashboard
+ */
+export async function getDashboardStats(): Promise<import('../types').DashboardStats> {
+  const response = await fetch(`${API_BASE_URL}/Statistics/dashboard`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').DashboardStats>(response);
+}
+
+/**
+ * Get monthly revenue data
+ * GET /api/Statistics/monthly-revenue
+ */
+export async function getMonthlyRevenue(months: number = 12): Promise<import('../types').MonthlyRevenue[]> {
+  const response = await fetch(`${API_BASE_URL}/Statistics/monthly-revenue?months=${months}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').MonthlyRevenue[]>(response);
+}
+
+/**
+ * Get top selling products
+ * GET /api/Statistics/top-products
+ */
+export async function getTopProducts(top: number = 10): Promise<import('../types').TopProduct[]> {
+  const response = await fetch(`${API_BASE_URL}/Statistics/top-products?top=${top}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').TopProduct[]>(response);
+}
+
+/**
+ * Get recent orders
+ * GET /api/Statistics/recent-orders
+ */
+export async function getRecentOrders(count: number = 10): Promise<import('../types').RecentOrder[]> {
+  const response = await fetch(`${API_BASE_URL}/Statistics/recent-orders?count=${count}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').RecentOrder[]>(response);
+}
+
+/**
+ * Get detailed report
+ * GET /api/Statistics/detailed-report
+ */
+export async function getDetailedReport(): Promise<import('../types').DetailedReport> {
+  const response = await fetch(`${API_BASE_URL}/Statistics/detailed-report`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').DetailedReport>(response);
+}
+
+/**
+ * SETTINGS ENDPOINTS
+ */
+
+/**
+ * Get store information
+ * GET /api/Settings/store-info
+ */
+export async function getStoreInfo(): Promise<{
+  storeName: string;
+  email: string;
+  phone: string;
+  address: string;
+  taxCode: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Settings/store-info`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Update store information
+ * PUT /api/Settings/store-info
+ */
+export async function updateStoreInfo(data: {
+  storeName: string;
+  email: string;
+  phone: string;
+  address: string;
+  taxCode: string;
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Settings/store-info`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Get user settings
+ * GET /api/Settings/user/{userId}
+ */
+export async function getUserSettings(userId: number): Promise<{
+  fullName: string;
+  email: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Settings/user/${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Update user settings
+ * PUT /api/Settings/user/{userId}
+ */
+export async function updateUserSettings(userId: number, data: {
+  fullName: string;
+  email: string;
+  currentPassword?: string;
+  newPassword?: string;
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Settings/user/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Get notification settings
+ * GET /api/Settings/notifications
+ */
+export async function getNotificationSettings(): Promise<{
+  emailNotifications: boolean;
+  orderNotifications: boolean;
+  lowStockAlerts: boolean;
+  customerMessages: boolean;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Settings/notifications`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Update notification settings
+ * PUT /api/Settings/notifications
+ */
+export async function updateNotificationSettings(data: {
+  emailNotifications: boolean;
+  orderNotifications: boolean;
+  lowStockAlerts: boolean;
+  customerMessages: boolean;
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Settings/notifications`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Get payment settings
+ * GET /api/Settings/payment
+ */
+export async function getPaymentSettings(): Promise<{
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  qrEnabled: boolean;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Settings/payment`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse(response);
+}
+
+/**
+ * Update payment settings
+ * PUT /api/Settings/payment
+ */
+export async function updatePaymentSettings(data: {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  qrEnabled: boolean;
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/Settings/payment`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse(response);
+}
+
