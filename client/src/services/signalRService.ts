@@ -16,10 +16,10 @@ export const createOrderNotificationConnection = () => {
 export const startConnection = async (connection: signalR.HubConnection) => {
   try {
     await connection.start();
-    console.log('✅ SignalR Connected - Order Notifications');
+ 
     return true;
   } catch (err) {
-    console.error('❌ SignalR Connection Error:', err);
+    
     return false;
   }
 };

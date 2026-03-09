@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SalesManagementAPI.Data;
+using SalesManagementAPI.Models;
 using SalesManagementAPI.Models.DTO;
 using System.Globalization;
 
@@ -55,14 +56,28 @@ namespace SalesManagementAPI.Controllers
         var productsLastMonth = await _context.Products
             .CountAsync(p => p.CreatedAt >= previousMonth && p.CreatedAt < currentMonth);
 
-        // Doanh thu
+        // Doanh thu (CHỊ TÍNH KHI ORDER = COMPLETED VÀ PAYMENT = PAID)
         var totalRevenue = await _context.Orders
+            .Include(o => o.Payments)
+            .Where(o => o.Status == OrderStatus.COMPLETED && 
+                   o.Payments != null && 
+                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
+            
         var revenueThisMonth = await _context.Orders
-            .Where(o => o.OrderDate >= currentMonth)
+            .Include(o => o.Payments)
+            .Where(o => o.OrderDate >= currentMonth &&
+                   o.Status == OrderStatus.COMPLETED && 
+                   o.Payments != null && 
+                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
+            
         var revenueLastMonth = await _context.Orders
-            .Where(o => o.OrderDate >= previousMonth && o.OrderDate < currentMonth)
+            .Include(o => o.Payments)
+            .Where(o => o.OrderDate >= previousMonth && o.OrderDate < currentMonth &&
+                   o.Status == OrderStatus.COMPLETED && 
+                   o.Payments != null && 
+                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
 
         // Tính phần trăm tăng trưởng
@@ -100,7 +115,11 @@ namespace SalesManagementAPI.Controllers
         startDate = new DateTime(startDate.Year, startDate.Month, 1);
 
         var monthlyData = await _context.Orders
-            .Where(o => o.OrderDate >= startDate)
+            .Include(o => o.Payments)
+            .Where(o => o.OrderDate >= startDate &&
+                   o.Status == OrderStatus.COMPLETED && 
+                   o.Payments != null && 
+                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
             .Select(g => new
             {
@@ -153,6 +172,11 @@ namespace SalesManagementAPI.Controllers
       {
         var topProducts = await _context.OrderDetails
             .Include(od => od.Product)
+            .Include(od => od.Order)
+                .ThenInclude(o => o!.Payments)
+            .Where(od => od.Order!.Status == OrderStatus.COMPLETED &&
+                   od.Order.Payments != null &&
+                   od.Order.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .GroupBy(od => new { od.ProductID, od.Product!.ProductName, od.Product.ImageURL })
             .Select(g => new TopProductDto
             {
@@ -192,7 +216,7 @@ namespace SalesManagementAPI.Controllers
               OrderID = o.OrderID,
               CustomerName = o.Customer != null ? o.Customer.FullName : "Khách vãng lai",
               TotalAmount = o.TotalAmount,
-              Status = o.Status,
+              Status = o.Status.ToString(),
               OrderDate = o.OrderDate
             })
             .ToListAsync();

@@ -49,7 +49,7 @@ namespace SalesManagementAPI.Services.Implementations
                         CustomerID = customer.CustomerID,
                         OrderDate = DateTime.Now,
                         TotalAmount = totalAmount,
-                        Status = "Pending" // Pending, Processing, Completed, Cancelled
+                        Status = OrderStatus.PENDING
                     };
 
                     _context.Orders.Add(order);
@@ -68,12 +68,18 @@ namespace SalesManagementAPI.Services.Implementations
                         _context.OrderDetails.Add(orderDetail);
                     }
 
-                    // Create Payment
+                    // Create Payment (always UNPAID for post-paid scenario)
                     var payment = new Payment
                     {
                         OrderID = order.OrderID,
-                        PaymentMethod = createOrderDto.PaymentMethod,
-                        PaymentStatus = createOrderDto.PaymentMethod == "COD" ? "Pending" : "Pending",
+                        PaymentMethod = createOrderDto.PaymentMethod.ToUpper() switch
+                        {
+                            "COD" => PaymentMethod.COD,
+                            "BANK_TRANSFER" => PaymentMethod.BANK_TRANSFER,
+                            "CASH" => PaymentMethod.CASH,
+                            _ => PaymentMethod.COD
+                        },
+                        PaymentStatus = PaymentStatus.UNPAID,
                         PaymentDate = DateTime.Now,
                         TransactionCode = GenerateTransactionCode(),
                         Amount = totalAmount
@@ -93,13 +99,13 @@ namespace SalesManagementAPI.Services.Implementations
                         OrderID = order.OrderID,
                         OrderDate = order.OrderDate,
                         TotalAmount = order.TotalAmount,
-                        Status = order.Status,
-                        PaymentMethod = payment.PaymentMethod,
+                        Status = order.Status.ToString(),
+                        PaymentMethod = payment.PaymentMethod.ToString(),
                         Payment = new PaymentResponseDto
                         {
                             PaymentID = payment.PaymentID,
-                            PaymentMethod = payment.PaymentMethod,
-                            PaymentStatus = payment.PaymentStatus,
+                            PaymentMethod = payment.PaymentMethod.ToString(),
+                            PaymentStatus = payment.PaymentStatus.ToString(),
                             PaymentDate = payment.PaymentDate,
                             TransactionCode = payment.TransactionCode,
                             Amount = payment.Amount
@@ -159,8 +165,8 @@ namespace SalesManagementAPI.Services.Implementations
                 OrderID = o.OrderID,
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
-                Status = o.Status,
-                PaymentMethod = o.Payments?.FirstOrDefault()?.PaymentMethod ?? "COD",
+                Status = o.Status.ToString(),
+                PaymentMethod = o.Payments?.FirstOrDefault()?.PaymentMethod.ToString() ?? "COD",
                 Customer = o.Customer != null ? new CreateCustomerDto
                 {
                     UserID = o.Customer.UserID,
@@ -172,8 +178,8 @@ namespace SalesManagementAPI.Services.Implementations
                 Payment = o.Payments?.FirstOrDefault() != null ? new PaymentResponseDto
                 {
                     PaymentID = o.Payments.First().PaymentID,
-                    PaymentMethod = o.Payments.First().PaymentMethod,
-                    PaymentStatus = o.Payments.First().PaymentStatus,
+                    PaymentMethod = o.Payments.First().PaymentMethod.ToString(),
+                    PaymentStatus = o.Payments.First().PaymentStatus.ToString(),
                     PaymentDate = o.Payments.First().PaymentDate,
                     TransactionCode = o.Payments.First().TransactionCode,
                     Amount = o.Payments.First().Amount
@@ -211,9 +217,15 @@ namespace SalesManagementAPI.Services.Implementations
             if (order == null)
                 return false;
 
-            order.Status = status;
-            await _context.SaveChangesAsync();
-            return true;
+            // Parse string to enum
+            if (Enum.TryParse<OrderStatus>(status, out var orderStatus))
+            {
+                order.Status = orderStatus;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            return false;
         }
 
         public async Task<bool> CancelOrderAsync(int orderId)
@@ -222,16 +234,16 @@ namespace SalesManagementAPI.Services.Implementations
                 .Include(o => o.Payments)
                 .FirstOrDefaultAsync(o => o.OrderID == orderId);
 
-            if (order == null || order.Status != "Pending")
+            if (order == null || order.Status != OrderStatus.PENDING)
                 return false;
 
-            order.Status = "Cancelled";
+            order.Status = OrderStatus.CANCELLED;
 
             if (order.Payments != null)
             {
                 foreach (var payment in order.Payments)
                 {
-                    payment.PaymentStatus = "Cancelled";
+                    payment.PaymentStatus = PaymentStatus.FAILED;
                 }
             }
 

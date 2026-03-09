@@ -45,13 +45,13 @@ const HeroSlider = ({ currentSlide, slides, onPrevSlide, onNextSlide }: HeroSlid
       {/* Slider Controls */}
       <button
         onClick={onPrevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#EAEAEA] hover:bg-primary text-[#CCCCCC] hover:text-white p-2 rounded-full transition-all z-10"
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-[#EAEAEA] hover:bg-primary text-[#CCCCCC] hover:text-white p-2 rounded-full transition-all z-10 cursor-pointer"
       >
         <ChevronLeft className="w-6 h-6" />
       </button>
       <button
         onClick={onNextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#EAEAEA] hover:bg-primary text-[#CCCCCC] hover:text-white p-2 rounded-full transition-all z-10"
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-[#EAEAEA] hover:bg-primary text-[#CCCCCC] hover:text-white p-2 rounded-full transition-all z-10 cursor-pointer"
       >
         <ChevronRight className="w-6 h-6" />
       </button>

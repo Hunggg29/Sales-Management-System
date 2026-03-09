@@ -1,0 +1,131 @@
+@startuml Order Process Sequence Diagram
+title Quy trình mua hàng - Từ đặt hàng đến thanh toán
+
+actor "Khách hàng" as Customer
+actor "Nhân viên\nkinh doanh" as Staff
+participant "Hệ thống\nWeb" as System
+participant "API Backend" as API
+participant "Database" as DB
+participant "SignalR Hub" as SignalR
+
+== Giai đoạn 1: Đặt hàng ==
+
+Customer -> System: Xem danh sách sản phẩm
+System -> API: GET /api/products
+API -> DB: Lấy danh sách sản phẩm
+DB --> API: Trả về sản phẩm
+API --> System: Danh sách sản phẩm
+System --> Customer: Hiển thị sản phẩm
+
+Customer -> System: Thêm sản phẩm vào giỏ hàng
+System -> API: POST /api/cart/add
+API -> DB: Lưu CartItem
+DB --> API: Xác nhận
+API --> System: Giỏ hàng đã cập nhật
+System --> Customer: Hiển thị giỏ hàng
+
+Customer -> System: Xác nhận đặt hàng
+System -> API: POST /api/orders/create-from-cart
+activate API
+API -> DB: Tạo Order (Status: PENDING)
+API -> DB: Tạo OrderDetails
+API -> DB: Tạo Payment (Status: UNPAID)
+API -> DB: Xóa Cart và CartItems
+DB --> API: Xác nhận tạo đơn
+API -> SignalR: Gửi thông báo đơn hàng mới
+deactivate API
+API --> System: Đơn hàng đã tạo (#OrderID)
+System --> Customer: Xác nhận đặt hàng thành công
+
+SignalR -> Staff: Thông báo đơn hàng mới (Real-time)
+note right of Staff
+  Nhân viên nhận thông báo
+  qua SignalR Hub với toast
+  và browser notification
+end note
+
+== Giai đoạn 2: Duyệt đơn hàng ==
+
+Staff -> System: Xem danh sách đơn hàng
+System -> API: GET /api/orders
+API -> DB: Lấy danh sách Order
+DB --> API: Danh sách đơn hàng
+API --> System: Orders (bao gồm PENDING)
+System --> Staff: Hiển thị đơn hàng chờ duyệt
+
+Staff -> System: Xem chi tiết đơn hàng
+System --> Staff: Hiển thị thông tin\n(Khách hàng, Sản phẩm,\nSố lượng, Tồn kho)
+
+alt Duyệt đơn hàng
+    Staff -> System: Nhấn "Duyệt đơn"
+    System -> API: PUT /api/orders/{id}/status\n(Status: APPROVED)
+    API -> DB: Cập nhật Order.Status = APPROVED
+    DB --> API: Xác nhận cập nhật
+    API --> System: Đơn hàng đã duyệt
+    System --> Staff: Thông báo thành công
+    
+else Từ chối đơn hàng
+    Staff -> System: Nhấn "Từ chối"
+    System -> API: PUT /api/orders/{id}/status\n(Status: CANCELLED)
+    API -> DB: Cập nhật Order.Status = CANCELLED
+    DB --> API: Xác nhận cập nhật
+    API --> System: Đơn hàng đã hủy
+    System --> Staff: Thông báo đã hủy
+    note right of Staff: Quy trình kết thúc tại đây
+end
+
+== Giai đoạn 3: Xử lý và giao hàng ==
+
+note over Staff, System
+  Nhân viên chuẩn bị hàng,
+  đóng gói và giao cho khách hàng
+end note
+
+Staff -> System: Hoàn thành đơn hàng
+System -> API: PUT /api/orders/{id}/status\n(Status: COMPLETED)
+API -> DB: Cập nhật Order.Status = COMPLETED
+DB --> API: Xác nhận
+API --> System: Đơn hàng hoàn thành
+System --> Staff: Thông báo hoàn thành
+
+Customer -> Customer: Nhận hàng
+
+== Giai đoạn 4: Thanh toán ==
+
+alt Khách hàng thanh toán bằng tiền mặt
+    Customer -> Staff: Thanh toán tiền mặt
+    Staff -> System: Xác nhận thanh toán
+    System -> API: POST /api/payment/confirm\n(OrderID, StaffID, PaymentMethod: Cash)
+    API -> DB: Cập nhật Payment.Status = PAID
+    API -> DB: Tạo PaymentLog
+    API -> DB: Cập nhật Invoice.StaffID
+    DB --> API: Xác nhận thanh toán
+    API --> System: Thanh toán thành công
+    System --> Staff: Hiển thị thông báo thành công
+    Staff --> Customer: Trả biên lai/hóa đơn
+    
+else Khách hàng thanh toán chuyển khoản
+    Customer -> System: Thanh toán qua\nngân hàng/ví điện tử
+    Customer -> Customer: Chuyển khoản\nvà nhận mã giao dịch
+    Customer -> Staff: Cung cấp mã giao dịch
+    Staff -> System: Nhập mã GD và xác nhận
+    System -> API: POST /api/payment/confirm\n(OrderID, StaffID, TransactionCode)
+    API -> DB: Cập nhật Payment.Status = PAID
+    API -> DB: Lưu TransactionCode
+    API -> DB: Tạo PaymentLog
+    API -> DB: Cập nhật Invoice.StaffID
+    DB --> API: Xác nhận thanh toán
+    API --> System: Thanh toán thành công
+    System --> Staff: Hiển thị thông báo thành công
+    Staff --> Customer: Xác nhận đã nhận thanh toán
+end
+
+== Kết thúc ==
+
+note over Customer, Staff
+  Đơn hàng: COMPLETED
+  Thanh toán: PAID
+  Quy trình hoàn tất
+end note
+
+@enduml

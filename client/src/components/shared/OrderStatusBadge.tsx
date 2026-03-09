@@ -1,4 +1,4 @@
-import { MdPending, MdCheckCircle, MdCancel, MdLocalShipping, MdDoneAll } from 'react-icons/md';
+import { MdPending, MdCheckCircle, MdCancel, MdLocalShipping, MdDoneAll, MdThumbUp, MdBuild } from 'react-icons/md';
 
 interface OrderStatusBadgeProps {
   status: string;
@@ -6,41 +6,68 @@ interface OrderStatusBadgeProps {
 
 const OrderStatusBadge = ({ status }: OrderStatusBadgeProps) => {
   const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'Pending':
+    const upperStatus = status.toUpperCase();
+    
+    switch (upperStatus) {
+      case 'PENDING_APPROVAL':
         return {
           text: 'Chờ duyệt',
-          classes: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
+          classes: 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 shadow-sm',
           icon: MdPending
         };
-      case 'Confirmed':
+      case 'APPROVED':
         return {
           text: 'Đã duyệt',
-          classes: 'bg-green-100 text-green-800 border border-green-200',
-          icon: MdCheckCircle
+          classes: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-2 border-green-300 shadow-sm',
+          icon: MdThumbUp
         };
-      case 'Processing':
+      case 'PROCESSING':
         return {
-          text: 'Đang vận chuyển',
-          classes: 'bg-blue-100 text-blue-800 border border-blue-200',
+          text: 'Đang xử lý',
+          classes: 'bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 border-2 border-indigo-300 shadow-sm',
+          icon: MdBuild
+        };
+      case 'SHIPPING':
+        return {
+          text: 'Đang giao hàng',
+          classes: 'bg-gradient-to-r from-blue-100 to-sky-100 text-blue-800 border-2 border-blue-300 shadow-sm',
           icon: MdLocalShipping
         };
-      case 'Completed':
+      case 'COMPLETED':
         return {
-          text: 'Giao thành công',
-          classes: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+          text: 'Hoàn thành',
+          classes: 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-2 border-emerald-400 shadow-md',
           icon: MdDoneAll
         };
-      case 'Cancelled':
+      case 'CANCELLED':
         return {
           text: 'Đã hủy',
-          classes: 'bg-red-100 text-red-800 border border-red-200',
+          classes: 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-2 border-red-300 shadow-sm',
           icon: MdCancel
+        };
+      // Legacy status support
+      case 'PENDING':
+        return {
+          text: 'Chờ duyệt',
+          classes: 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 shadow-sm',
+          icon: MdPending
+        };
+      case 'CONFIRMED':
+        return {
+          text: 'Đã duyệt',
+          classes: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-2 border-green-300 shadow-sm',
+          icon: MdThumbUp
+        };
+      case 'PROCESSING':
+        return {
+          text: 'Đang vận chuyển',
+          classes: 'bg-gradient-to-r from-blue-100 to-sky-100 text-blue-800 border-2 border-blue-300 shadow-sm',
+          icon: MdLocalShipping
         };
       default:
         return {
           text: status,
-          classes: 'bg-gray-100 text-gray-800 border border-gray-200',
+          classes: 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-2 border-gray-300 shadow-sm',
           icon: MdPending
         };
     }
@@ -50,7 +77,7 @@ const OrderStatusBadge = ({ status }: OrderStatusBadgeProps) => {
   const Icon = config.icon;
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${config.classes}`}>
+    <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold ${config.classes} transition-all duration-200 hover:scale-105`}>
       <Icon className="w-4 h-4" />
       {config.text}
     </span>

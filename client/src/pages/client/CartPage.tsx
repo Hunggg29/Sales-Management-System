@@ -6,7 +6,6 @@ import { getCartByUserId, updateCartItem, removeCartItem, clearCart } from '../.
 import type { Cart, User } from '../../types';
 import { useCart } from '../../contexts/CartContext';
 import CheckoutModal from '../../components/CheckoutModal';
-import QRPaymentModal from '../../components/QRPaymentModal';
 
 const CartPage = () => {
   const { refreshCart } = useCart();
@@ -15,8 +14,6 @@ const CartPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [updatingItems, setUpdatingItems] = useState<Set<number>>(new Set());
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const [qrData, setQrData] = useState<any>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -290,7 +287,7 @@ const CartPage = () => {
                   <button className="w-full py-4 mb-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
                     onClick={() => setShowCheckoutModal(true)}
                   >
-                    Tiến hành thanh toán
+                    Đặt hàng
                   </button>
 
                   <Link to="/san-pham">
@@ -327,23 +324,10 @@ const CartPage = () => {
               fetchCart(user.userID);
             }
           }}
-          onShowQRPayment={(data) => {
-            console.log('CartPage: Received QR data:', data);
-            setQrData(data);
-            setShowQRModal(true);
-            console.log('CartPage: Set showQRModal to true');
-          }}
           cart={cart}
           user={user}
         />
       )}
-
-      {/* QR Payment Modal */}
-      <QRPaymentModal
-        isOpen={showQRModal}
-        onClose={() => setShowQRModal(false)}
-        qrData={qrData}
-      />
     </div>
   );
 };

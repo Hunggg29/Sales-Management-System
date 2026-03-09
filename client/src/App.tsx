@@ -22,6 +22,7 @@ import {
   OrderHistoryPage,
   PaymentFailedPage,
 } from './pages/client';
+import InvoicePage from './pages/client/InvoicePage';
 
 // Admin Pages
 import {
@@ -34,6 +35,14 @@ import {
   AdminPaymentsPage,
   AdminSettingsPage,
 } from './pages/admin';
+
+// Sales Staff Pages
+import {
+  SalesStaffDashboard,
+  SalesStaffCustomersPage,
+  SalesStaffOrdersPage,
+  SalesStaffPaymentsPage,
+} from './pages/staff';
 
 function App() {
   return (
@@ -50,6 +59,12 @@ function App() {
           <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/payments" element={<AdminPaymentsPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
+
+          {/* Sales Staff Routes - Không có Header/Footer */}
+          <Route path="/staff/dashboard" element={<SalesStaffDashboard />} />
+          <Route path="/staff/customers" element={<SalesStaffCustomersPage />} />
+          <Route path="/staff/orders" element={<SalesStaffOrdersPage />} />
+          <Route path="/staff/payments" element={<SalesStaffPaymentsPage />} />
 
           {/* Customer Routes - Có Header/Footer */}
           <Route path="/*" element={
@@ -69,6 +84,7 @@ function App() {
                   <Route path="/ho-so" element={<ProfilePage />} />
                   <Route path="/gio-hang" element={<CartPage />} />
                   <Route path="/don-hang/:orderId" element={<OrderSuccessPage />} />
+                  <Route path="/hoa-don/:orderId" element={<InvoicePage />} />
                   <Route path="/don-hang/failed" element={<PaymentFailedPage />} />
                   <Route path="/lich-su-don-hang" element={<OrderHistoryPage />} />
                 </Routes>
@@ -81,13 +97,20 @@ function App() {
           position="top-right"
           autoClose={3000}
           hideProgressBar={false}
-          newestOnTop={false}
+          newestOnTop={true}
           closeOnClick
           rtl={false}
           pauseOnFocusLoss
           draggable
           pauseOnHover
           theme="light"
+          style={{ zIndex: 9999 }}
+          toastStyle={{
+            backgroundColor: '#fff',
+            color: '#333',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            borderRadius: '8px'
+          }}
         />
       </Router>
     </CartProvider>

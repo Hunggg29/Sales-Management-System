@@ -1,0 +1,69 @@
+@startuml
+title Quy trình thanh toán chuyển khoản ngân hàng
+
+|Khách hàng|
+start
+:Đặt hàng thành công\n(Đơn hàng: PENDING\nThanh toán: UNPAID);
+
+|Nhân viên kinh doanh|
+:Nhận thông báo đơn hàng mới\n(qua SignalR);
+:Xem chi tiết đơn hàng;
+:Duyệt đơn hàng\n(Trạng thái: APPROVED);
+
+note right
+  Đơn hàng phải được duyệt
+  trước khi có thể xác nhận
+  thanh toán
+end note
+
+:Chuẩn bị và giao hàng\ncho khách hàng;
+:Cập nhật trạng thái\nđơn hàng: COMPLETED;
+
+|Khách hàng|
+:Nhận hàng thành công;
+
+note left
+  Khách hàng có thể thanh toán
+  tại nhiều thời điểm:
+  - Khi đặt hàng
+  - Khi nhận hàng
+  - Sau khi nhận hàng
+end note
+
+:Thực hiện chuyển khoản\nngân hàng theo thông tin;
+:Nhận được mã giao dịch\ntừ ngân hàng;
+:Cung cấp mã giao dịch\ncho nhân viên;
+
+|Nhân viên kinh doanh|
+:Truy cập trang\nQuản lý Thanh toán;
+:Tìm kiếm đơn hàng\ntheo mã đơn/khách hàng;
+:Kiểm tra thông tin\nchuyển khoản;
+
+if (Xác nhận thanh toán\nhợp lệ?) then (Có)
+  :Nhấn "Xác nhận thanh toán";
+  :Nhập mã giao dịch\n(nếu có);
+  :Gọi API confirm-bank-transfer\n(OrderID, StaffID, TransactionCode);
+  :Hệ thống cập nhật:\n- Payment.Status = PAID\n- Payment.TransactionCode\n- Tạo PaymentLog\n- Cập nhật Invoice.StaffID;
+  :Hiển thị thông báo\n"Xác nhận thanh toán thành công";
+  
+  |Khách hàng|
+  :Nhận xác nhận\nthanh toán thành công;
+  
+else (Không)
+  :Không xác nhận;
+  
+  note right
+    Nếu thông tin không hợp lệ,
+    nhân viên sẽ không xác nhận
+    và đơn hàng vẫn ở trạng thái
+    UNPAID
+  end note
+  
+  |Khách hàng|
+  :Liên hệ lại với\nnhân viên để xử lý;
+  
+endif
+
+stop
+
+@enduml

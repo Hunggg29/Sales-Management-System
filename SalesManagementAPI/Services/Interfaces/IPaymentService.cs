@@ -1,3 +1,4 @@
+using SalesManagementAPI.Models;
 using SalesManagementAPI.Models.DTO;
 
 namespace SalesManagementAPI.Services.Interfaces
@@ -18,5 +19,10 @@ namespace SalesManagementAPI.Services.Interfaces
         /// Kiểm tra trạng thái thanh toán
         /// </summary>
         Task<PaymentStatusDto?> GetPaymentStatusAsync(int orderId);
+
+        /// <summary>
+        /// Lấy hóa đơn theo OrderId
+        /// </summary>
+        Task<Invoice?> GetInvoiceByOrderIdAsync(int orderId);
     }
 }

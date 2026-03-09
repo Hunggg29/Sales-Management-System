@@ -53,7 +53,7 @@ const CategorySidebar = ({
             >
               <button
                 onClick={() => onSelectCategory(null)}
-                className={`block w-full text-left px-5 py-4 font-bold text-base transition-colors ${
+                className={`block w-full text-left px-5 py-4 font-bold text-base transition-colors cursor-pointer ${
                   selectedCategoryID === null
                     ? 'bg-red-50 text-red-600 border-l-4 border-red-600'
                     : 'text-[#333333] hover:text-red-600'
@@ -72,7 +72,7 @@ const CategorySidebar = ({
               >
                 <button
                   onClick={() => onSelectCategory(category.categoryID)}
-                  className={`block w-full text-left px-5 py-4 font-bold text-base transition-colors ${
+                  className={`block w-full text-left px-5 py-4 font-bold text-base transition-colors cursor-pointer ${
                     selectedCategoryID === category.categoryID
                       ? 'bg-red-50 text-red-600 border-l-4 border-red-600'
                       : 'text-[#333333] hover:text-red-600'

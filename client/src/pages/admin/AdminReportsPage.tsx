@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { getDetailedReport } from '../../services/api';
-import type { DetailedReport } from '../../types';
+import { getDetailedReport, getAllOrders } from '../../services/api';
+import type { DetailedReport, Order } from '../../types';
 import {
   LineChart,
   Line,
@@ -18,11 +18,11 @@ import {
   Cell
 } from 'recharts';
 import {
-  MdTrendingUp,
   MdShoppingCart,
   MdPeople,
   MdInventory,
-  MdAttachMoney
+  MdAttachMoney,
+  MdWarning
 } from 'react-icons/md';
 
 const COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
@@ -31,9 +31,12 @@ const AdminReportsPage = () => {
   const [report, setReport] = useState<DetailedReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'6' | '12'>('12');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [unpaidOrders, setUnpaidOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     fetchReport();
+    fetchOrders();
   }, []);
 
   const fetchReport = async () => {
@@ -45,6 +48,23 @@ const AdminReportsPage = () => {
       console.error('Error fetching report:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    try {
+      const data = await getAllOrders();
+      setOrders(data);
+      
+      // Lọc các đơn hàng chưa thanh toán (đã được duyệt nhưng chưa thanh toán)
+      const unpaid = data.filter(order => 
+        order.payment && 
+        order.payment.paymentStatus.toUpperCase() === 'UNPAID' &&
+        ['APPROVED', 'PROCESSING', 'SHIPPING', 'COMPLETED'].includes(order.status.toUpperCase())
+      );
+      setUnpaidOrders(unpaid);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
     }
   };
 
@@ -99,6 +119,33 @@ const AdminReportsPage = () => {
     value: product.totalRevenue
   }));
 
+  // Tính tổng công nợ phải thu
+  const totalUnpaidAmount = unpaidOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+
+  // Nhóm công nợ theo khách hàng
+  const debtByCustomer = unpaidOrders.reduce((acc, order) => {
+    const customerId = order.customer?.customerID || 0;
+    const customerName = order.customer?.fullName || 'Khách vãng lai';
+    
+    if (!acc[customerId]) {
+      acc[customerId] = {
+        customerId,
+        customerName,
+        totalDebt: 0,
+        orderCount: 0,
+        orders: []
+      };
+    }
+    
+    acc[customerId].totalDebt += order.totalAmount;
+    acc[customerId].orderCount += 1;
+    acc[customerId].orders.push(order);
+    
+    return acc;
+  }, {} as Record<number, { customerId: number; customerName: string; totalDebt: number; orderCount: number; orders: Order[] }>);
+
+  const debtList = Object.values(debtByCustomer).sort((a, b) => b.totalDebt - a.totalDebt);
+
   const stats = [
     {
       title: 'Tổng doanh thu',
@@ -106,6 +153,13 @@ const AdminReportsPage = () => {
       change: report.overallStats?.revenueGrowthPercentage || 0,
       icon: MdAttachMoney,
       color: 'bg-green-500'
+    },
+    {
+      title: 'Công nợ phải thu',
+      value: formatFullCurrency(totalUnpaidAmount),
+      change: 0,
+      icon: MdWarning,
+      color: 'bg-yellow-500'
     },
     {
       title: 'Tổng đơn hàng',
@@ -120,13 +174,6 @@ const AdminReportsPage = () => {
       change: report.overallStats?.customersGrowthPercentage || 0,
       icon: MdPeople,
       color: 'bg-purple-500'
-    },
-    {
-      title: 'Sản phẩm',
-      value: formatNumber(report.overallStats?.totalProducts || 0),
-      change: report.overallStats?.productsGrowthPercentage || 0,
-      icon: MdInventory,
-      color: 'bg-orange-500'
     }
   ];
 
@@ -316,6 +363,127 @@ const AdminReportsPage = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Công nợ phải thu Section */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl shadow-md p-6 border-2 border-yellow-300">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-yellow-500 p-3 rounded-lg">
+              <MdWarning className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800">Công nợ phải thu</h3>
+              <p className="text-sm text-gray-600">Các đơn hàng đã duyệt nhưng chưa thanh toán</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Tổng công nợ</p>
+              <p className="text-2xl font-bold text-red-600">{formatFullCurrency(totalUnpaidAmount)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Số đơn chưa thanh toán</p>
+              <p className="text-2xl font-bold text-orange-600">{formatNumber(unpaidOrders.length)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Khách hàng còn nợ</p>
+              <p className="text-2xl font-bold text-yellow-600">{formatNumber(debtList.length)}</p>
+            </div>
+          </div>
+
+          {/* Danh sách khách hàng còn nợ */}
+          {debtList.length > 0 && (
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h4 className="text-lg font-bold text-gray-800 mb-4">Danh sách khách hàng còn nợ</h4>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        #
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Khách hàng
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Số đơn hàng
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tổng nợ
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Chi tiết
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {debtList.map((debt, index) => (
+                      <tr key={debt.customerId} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 font-bold rounded-full">
+                            {index + 1}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-800">{debt.customerName}</div>
+                          <div className="text-sm text-gray-500">ID: {debt.customerId}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                            {debt.orderCount} đơn
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-red-600 font-bold text-lg">{formatFullCurrency(debt.totalDebt)}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <details className="cursor-pointer">
+                            <summary className="text-blue-600 hover:text-blue-800 font-medium">
+                              Xem chi tiết ({debt.orders.length} đơn)
+                            </summary>
+                            <div className="mt-2 space-y-2 ml-4">
+                              {debt.orders.map(order => (
+                                <div key={order.orderID} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                                  <div>
+                                    <span className="font-medium">Đơn #{order.orderID}</span>
+                                    <span className="text-gray-500 ml-2">
+                                      {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                      order.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                      order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                                      order.status === 'SHIPPING' ? 'bg-purple-100 text-purple-800' :
+                                      order.status === 'COMPLETED' ? 'bg-green-600 text-white' :
+                                      'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {order.status}
+                                    </span>
+                                    <span className="font-semibold text-red-600">
+                                      {formatFullCurrency(order.totalAmount)}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {debtList.length === 0 && (
+            <div className="bg-white rounded-lg p-8 shadow-sm text-center">
+              <MdWarning className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Không có công nợ phải thu</p>
+            </div>
+          )}
         </div>
       </div>
     </AdminLayout>

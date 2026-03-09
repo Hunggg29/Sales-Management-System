@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { MdSearch, MdCheckCircle, MdCancel, MdPending } from 'react-icons/md';
-import AdminLayout from '../../components/AdminLayout';
+import SalesStaffLayout from '../../components/SalesStaffLayout';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { Pagination } from '../../components/shared';
 import { getAllOrders, confirmPayment } from '../../services/api';
@@ -17,7 +17,7 @@ interface Payment {
   customerName?: string;
 }
 
-const AdminPaymentsPage = () => {
+const SalesStaffPaymentsPage = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,13 +27,8 @@ const AdminPaymentsPage = () => {
   const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
-    orderId: number | null;
-    transactionCode?: string;
-    payment?: Payment;
-  }>({
-    isOpen: false,
-    orderId: null,
-  });
+    payment: Payment | null;
+  }>({ isOpen: false, payment: null });
 
   useEffect(() => {
     fetchPayments();
@@ -42,18 +37,13 @@ const AdminPaymentsPage = () => {
   const fetchPayments = async () => {
     try {
       setIsLoading(true);
-      // Get all orders which contain payment information
       const orders = await getAllOrders();
       
-      // Các trạng thái đơn hàng đã được admin/staff xác nhận
+      // Chỉ lấy đơn hàng đã được duyệt trở lên
       const confirmedStatuses = ['APPROVED', 'PROCESSING', 'SHIPPING', 'COMPLETED'];
       
-      // Extract payment data from orders - chỉ lấy những đơn đã được xác nhận
       const paymentData: Payment[] = orders
-        .filter(order => {
-          // Chỉ hiển thị đơn hàng có payment và đã được xác nhận bởi admin/staff
-          return order.payment && confirmedStatuses.includes(order.status.toUpperCase());
-        })
+        .filter(order => order.payment && confirmedStatuses.includes(order.status.toUpperCase()))
         .map(order => ({
           paymentID: order.payment!.paymentID,
           orderID: order.orderID,
@@ -110,12 +100,11 @@ const AdminPaymentsPage = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination logic
+  // Pagination
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPayments = filteredPayments.slice(startIndex, startIndex + itemsPerPage);
 
-  // Reset to page 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
@@ -138,45 +127,27 @@ const AdminPaymentsPage = () => {
   };
 
   const handleOpenConfirmDialog = (payment: Payment) => {
-    setConfirmDialog({
-      isOpen: true,
-      orderId: payment.orderID,
-      transactionCode: payment.transactionCode,
-      payment: payment,
-    });
+    setConfirmDialog({ isOpen: true, payment });
   };
 
   const handleConfirmPayment = async () => {
-    if (!confirmDialog.orderId) return;
+    if (!confirmDialog.payment) return;
 
-    const orderId = confirmDialog.orderId;
-    const transactionCode = confirmDialog.transactionCode;
-    
-    setConfirmingOrderId(orderId);
+    const payment = confirmDialog.payment;
+    setConfirmingOrderId(payment.orderID);
+
     try {
-      const result = await confirmPayment(orderId, 1, transactionCode);
-      console.log('Confirm payment result:', result);
-      
-      if (result && result.success) {
-        console.log('Payment confirmed successfully, showing success toast');
-        // Refresh the payment list to show updated status first
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const staffId = currentUser.userId || 1;
+      const result = await confirmPayment(payment.orderID, staffId, payment.transactionCode);
+
+      if (result.success) {
+        toast.success('Xác nhận thanh toán thành công', { type: 'success' });
         await fetchPayments();
-        // Then show success toast with explicit type
-        toast('Xác nhận thanh toán thành công!', {
-          type: 'success',
-          position: 'top-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true
-        });
       } else {
-        console.log('Payment confirmation failed:', result?.message || 'Unknown error');
-        toast.error(result?.message || 'Không thể xác nhận thanh toán');
+        toast.error(result.message || 'Xác nhận thất bại');
       }
     } catch (error) {
-      console.error('Confirm payment error:', error);
       toast.error('Không thể xác nhận thanh toán');
     } finally {
       setConfirmingOrderId(null);
@@ -184,28 +155,28 @@ const AdminPaymentsPage = () => {
   };
 
   return (
-    <AdminLayout title="Quản lý Thanh toán">
+    <SalesStaffLayout title="Quản lý Thanh toán">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {/* Search Bar and Filters */}
+        {/* Search and Filters */}
         <div className="p-4 border-b border-gray-100 space-y-4">
           <div className="relative max-w-md">
             <input
               type="text"
               placeholder="Tìm kiếm theo khách hàng, mã đơn, mã giao dịch..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <MdSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
 
-          {/* Status Filter Buttons */}
+          {/* Status Filter */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors shadow-sm ${
                 statusFilter === 'all'
-                  ? 'bg-red-600 text-white shadow-md'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
             >
@@ -246,7 +217,7 @@ const AdminPaymentsPage = () => {
 
         {isLoading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -350,24 +321,17 @@ const AdminPaymentsPage = () => {
           />
         )}
       </div>
-
-      {/* Confirm Payment Dialog */}
+      {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        title="Xác nhận thanh toán"
-        message={
-          confirmDialog.payment
-            ? `Bạn có chắc chắn muốn xác nhận thanh toán cho đơn hàng #${confirmDialog.payment.orderID}?\n\nKhách hàng: ${confirmDialog.payment.customerName || 'Khách vãng lai'}\nSố tiền: ${formatCurrency(confirmDialog.payment.amount)}${confirmDialog.payment.transactionCode ? `\nMã GD: ${confirmDialog.payment.transactionCode}` : ''}\n\nSau khi xác nhận, trạng thái thanh toán sẽ được cập nhật thành "Đã thanh toán" và không thể hoàn tác.`
-            : 'Bạn có chắc chắn muốn xác nhận thanh toán này?'
-        }
-        confirmText="Xác nhận thanh toán"
-        cancelText="Hủy bỏ"
+        onCancel={() => setConfirmDialog({ isOpen: false, payment: null })}
         onConfirm={handleConfirmPayment}
-        onCancel={() => setConfirmDialog({ isOpen: false, orderId: null })}
+        title="Xác nhận thanh toán"
+        message={`Bạn có chắc muốn xác nhận thanh toán cho đơn hàng #${confirmDialog.payment?.orderID}?`}
         type="success"
       />
-    </AdminLayout>
+    </SalesStaffLayout>
   );
 };
 
-export default AdminPaymentsPage;
+export default SalesStaffPaymentsPage;

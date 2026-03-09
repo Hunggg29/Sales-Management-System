@@ -127,6 +127,30 @@ export interface UpdateCartItemRequest {
   quantity: number;
 }
 
+// Enums
+export enum OrderStatus {
+  NEW = 'NEW',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  APPROVED = 'APPROVED',
+  PROCESSING = 'PROCESSING',
+  SHIPPING = 'SHIPPING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
+}
+
+export enum PaymentStatus {
+  UNPAID = 'UNPAID',
+  PAID = 'PAID',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED'
+}
+
+export enum PaymentMethod {
+  COD = 'COD',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+  CASH = 'CASH'
+}
+
 // Order
 export interface Order {
   orderID: number;

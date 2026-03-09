@@ -5,7 +5,7 @@ namespace SalesManagementAPI.Models
     {
         public int InvoiceID { get; set; }
         public int OrderID { get; set; }
-        public int StaffID { get; set; }
+        public int? StaffID { get; set; }
         public string InvoiceNumber { get; set; } = null!;
         public DateTime IssueDate { get; set; }
         public decimal TotalAmount { get; set; }

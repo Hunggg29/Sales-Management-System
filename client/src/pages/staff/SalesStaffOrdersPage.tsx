@@ -1,95 +1,43 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { MdVisibility, MdCheck, MdClose, MdLocalShipping, MdCheckCircle } from 'react-icons/md';
-import AdminLayout from '../../components/AdminLayout';
+import { MdSearch, MdVisibility, MdCheckCircle, MdCheck, MdClose } from 'react-icons/md';
+import SalesStaffLayout from '../../components/SalesStaffLayout';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { Pagination } from '../../components/shared';
 import { getAllOrders, updateOrderStatus } from '../../services/api';
 import type { Order } from '../../types';
 
-const AdminOrdersPage = () => {
+const SalesStaffOrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
-    message: string;
     orderId: number | null;
-    status: string | null;
-    type: 'warning' | 'danger' | 'info' | 'success';
-  }>({ isOpen: false, message: '', orderId: null, status: null, type: 'warning' });
+    newStatus: string | null;
+  }>({
+    isOpen: false,
+    orderId: null,
+    newStatus: null,
+  });
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const fetchOrders = async () => {
     try {
+      setIsLoading(true);
       const data = await getAllOrders();
       setOrders(data);
     } catch (error) {
       toast.error('Không thể tải danh sách đơn hàng');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    
-    // Listen for new order events from AdminLayout
-    const handleNewOrder = () => {
-      console.log('📦 Orders page: Refreshing due to new order');
-      fetchOrders();
-    };
-    
-    window.addEventListener('newOrder', handleNewOrder as EventListener);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('newOrder', handleNewOrder as EventListener);
-    };
-  }, []);
-
-  const handleUpdateStatus = async (orderId: number, status: string) => {
-    const statusLabelsLocal: Record<string, string> = {
-      'PENDING': 'Chờ duyệt',
-      'APPROVED': 'Đã duyệt',
-      'COMPLETED': 'Hoàn thành',
-      'CANCELLED': 'Đã hủy',
-    };
-
-    // Xác định màu dialog dựa trên trạng thái mới
-    let dialogType: 'warning' | 'danger' | 'info' | 'success' = 'warning';
-    if (status === 'CANCELLED') {
-      dialogType = 'danger';
-    } else if (status === 'PENDING') {
-      dialogType = 'info';
-    } else if (status === 'APPROVED' || status === 'COMPLETED') {
-      dialogType = 'success';
-    }
-
-    setConfirmDialog({
-      isOpen: true,
-      message: `Bạn có chắc muốn chuyển trạng thái đơn hàng thành "${statusLabelsLocal[status]}"?`,
-      orderId,
-      status,
-      type: dialogType
-    });
-  };
-
-  const handleConfirmStatusChange = async () => {
-    if (!confirmDialog.orderId || !confirmDialog.status) return;
-
-    try {
-      await updateOrderStatus(confirmDialog.orderId, confirmDialog.status);
-      toast.success('Cập nhật trạng thái thành công');
-      fetchOrders();
-      if (selectedOrder?.orderID === confirmDialog.orderId) {
-        setSelectedOrder(prev => prev ? { ...prev, status: confirmDialog.status! } : null);
-      }
-    } catch (error) {
-      toast.error('Cập nhật thất bại');
     }
   };
 
@@ -107,63 +55,77 @@ const AdminOrdersPage = () => {
     'CANCELLED': 'Đã hủy',
   };
 
-  const paymentStatusColors: Record<string, string> = {
-    'UNPAID': 'bg-orange-100 text-orange-800',
-    'PAID': 'bg-green-100 text-green-800',
-    'FAILED': 'bg-red-100 text-red-800',
-    'REFUNDED': 'bg-gray-100 text-gray-800',
-  };
-
-  const paymentStatusLabels: Record<string, string> = {
-    'UNPAID': 'Chưa thanh toán',
-    'PAID': 'Đã thanh toán',
-    'FAILED': 'Thất bại',
-    'REFUNDED': 'Đã hoàn tiền',
-  };
-
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderID.toString().includes(searchTerm);
+    const matchesSearch = 
+      order.orderID.toString().includes(searchTerm) ||
+      order.customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination logic
+  // Pagination
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
 
-  // Reset to page 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(value);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('vi-VN');
+  };
+
+  const handleStatusUpdate = (orderId: number, newStatus: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      orderId,
+      newStatus,
+    });
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!confirmDialog.orderId || !confirmDialog.newStatus) return;
+
+    try {
+      await updateOrderStatus(confirmDialog.orderId, confirmDialog.newStatus);
+      toast.success('Cập nhật trạng thái thành công');
+      await fetchOrders();
+    } catch (error) {
+      toast.error('Không thể cập nhật trạng thái');
+    }
+  };
+
+  // Staff chỉ được cập nhật một số trạng thái nhất định
+  const getAvailableStatuses = (currentStatus: string) => {
+    const statusFlow: Record<string, string[]> = {
+      'PENDING': ['APPROVED', 'CANCELLED'],
+      'APPROVED': ['COMPLETED', 'CANCELLED'],
+    };
+    return statusFlow[currentStatus] || [];
+  };
+
   return (
-    <AdminLayout title="Quản lý đơn hàng">
+    <SalesStaffLayout title="Quản lý Đơn hàng">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {/* Search Bar and Filters */}
+        {/* Search and Filters */}
         <div className="p-4 border-b border-gray-100 space-y-4">
           <div className="relative max-w-md">
             <input
               type="text"
-              placeholder="Tìm kiếm theo tên khách hàng hoặc ID..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+              placeholder="Tìm kiếm theo mã đơn, tên khách hàng..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <svg
-              className="absolute left-3 top-2.5 h-5 w-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            <MdSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           </div>
 
           {/* Status Filter Dropdown */}
@@ -175,7 +137,7 @@ const AdminOrdersPage = () => {
               id="status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors min-w-[200px]"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[200px]"
             >
               <option value="all">Tất cả ({orders.length})</option>
               <option value="PENDING">Chờ duyệt ({orders.filter(o => o.status === 'PENDING').length})</option>
@@ -188,26 +150,26 @@ const AdminOrdersPage = () => {
 
         {isLoading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">ID</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Mã đơn</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Khách hàng</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Ngày đặt</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Tổng tiền</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">Hành động</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {paginatedOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                      Không tìm thấy đơn hàng nào phù hợp
+                      Không tìm thấy đơn hàng nào
                     </td>
                   </tr>
                 ) : (
@@ -216,18 +178,18 @@ const AdminOrdersPage = () => {
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         #{order.orderID}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-gray-900">
                         {order.customer?.fullName || 'Khách vãng lai'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(order.orderDate).toLocaleDateString('vi-VN')}
+                        {formatDate(order.orderDate)}
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-red-600">
-                        {order.totalAmount.toLocaleString('vi-VN')}₫
+                        {formatCurrency(order.totalAmount)}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
-                          {statusLabels[order.status] || order.status}
+                        <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusColors[order.status]}`}>
+                          {statusLabels[order.status]}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right space-x-2">
@@ -243,14 +205,14 @@ const AdminOrdersPage = () => {
                         {order.status === 'PENDING' && (
                           <>
                             <button
-                              onClick={() => handleUpdateStatus(order.orderID, 'APPROVED')}
+                              onClick={() => handleStatusUpdate(order.orderID, 'APPROVED')}
                               className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors"
                               title="Duyệt đơn"
                             >
                               <MdCheck className="w-5 h-5" />
                             </button>
                             <button
-                              onClick={() => handleUpdateStatus(order.orderID, 'CANCELLED')}
+                              onClick={() => handleStatusUpdate(order.orderID, 'CANCELLED')}
                               className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
                               title="Từ chối"
                             >
@@ -262,18 +224,7 @@ const AdminOrdersPage = () => {
                         {/* APPROVED -> COMPLETED */}
                         {order.status === 'APPROVED' && (
                           <button
-                            onClick={() => handleUpdateStatus(order.orderID, 'COMPLETED')}
-                            className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors"
-                            title="Hoàn thành đơn hàng"
-                          >
-                            <MdCheck className="w-5 h-5" />
-                          </button>
-                        )}
-                        
-                        {/* PROCESSING -> SHIPPING */}
-                        {order.status === 'PROCESSING' && (
-                          <button
-                            onClick={() => handleUpdateStatus(order.orderID, 'COMPLETED')}
+                            onClick={() => handleStatusUpdate(order.orderID, 'COMPLETED')}
                             className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors"
                             title="Hoàn thành đơn hàng"
                           >
@@ -282,12 +233,13 @@ const AdminOrdersPage = () => {
                         )}
                       </td>
                     </tr>
-                  )))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
         )}
-        
+
         {!isLoading && filteredOrders.length > 0 && (
           <Pagination
             currentPage={currentPage}
@@ -336,13 +288,18 @@ const AdminOrdersPage = () => {
                   </div>
                   <div>
                     <p className="text-gray-500">Trạng thái TT:</p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${paymentStatusColors[selectedOrder.payment?.paymentStatus || 'UNPAID']}`}>
-                      {paymentStatusLabels[selectedOrder.payment?.paymentStatus || 'UNPAID']}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      selectedOrder.payment?.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
+                      selectedOrder.payment?.paymentStatus === 'UNPAID' ? 'bg-orange-100 text-orange-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {selectedOrder.payment?.paymentStatus === 'PAID' ? 'Đã thanh toán' :
+                       selectedOrder.payment?.paymentStatus === 'UNPAID' ? 'Chưa thanh toán' : 'N/A'}
                     </span>
                   </div>
                   <div>
                     <p className="text-gray-500">Tổng tiền:</p>
-                    <p className="font-bold text-red-600">{selectedOrder.totalAmount.toLocaleString('vi-VN')}₫</p>
+                    <p className="font-bold text-red-600">{formatCurrency(selectedOrder.totalAmount)}</p>
                   </div>
                 </div>
               </div>
@@ -369,10 +326,10 @@ const AdminOrdersPage = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-red-600">
-                          {item.totalPrice.toLocaleString('vi-VN')}₫
+                          {formatCurrency(item.totalPrice)}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {item.unitPrice.toLocaleString('vi-VN')}₫/cái
+                          {formatCurrency(item.unitPrice)}/cái
                         </p>
                       </div>
                     </div>
@@ -386,7 +343,7 @@ const AdminOrdersPage = () => {
                 <>
                   <button
                     onClick={() => {
-                      handleUpdateStatus(selectedOrder.orderID, 'CANCELLED');
+                      handleStatusUpdate(selectedOrder.orderID, 'CANCELLED');
                       setSelectedOrder(null);
                     }}
                     className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium"
@@ -395,7 +352,7 @@ const AdminOrdersPage = () => {
                   </button>
                   <button
                     onClick={() => {
-                      handleUpdateStatus(selectedOrder.orderID, 'APPROVED');
+                      handleStatusUpdate(selectedOrder.orderID, 'APPROVED');
                       setSelectedOrder(null);
                     }}
                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
@@ -406,7 +363,7 @@ const AdminOrdersPage = () => {
               ) : selectedOrder.status === 'APPROVED' ? (
                 <button
                   onClick={() => {
-                    handleUpdateStatus(selectedOrder.orderID, 'COMPLETED');
+                    handleStatusUpdate(selectedOrder.orderID, 'COMPLETED');
                     setSelectedOrder(null);
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
@@ -430,16 +387,16 @@ const AdminOrdersPage = () => {
       {/* Confirm Dialog */}
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}
-        title="Xác nhận thay đổi"
-        message={confirmDialog.message}
-        confirmText="Đồng ý"
+        title="Xác nhận cập nhật trạng thái"
+        message={`Bạn có chắc chắn muốn cập nhật trạng thái đơn hàng #${confirmDialog.orderId} thành "${confirmDialog.newStatus ? statusLabels[confirmDialog.newStatus] : ''}"?`}
+        confirmText="Xác nhận"
         cancelText="Hủy"
-        type={confirmDialog.type}
-        onConfirm={handleConfirmStatusChange}
-        onCancel={() => setConfirmDialog({ isOpen: false, message: '', orderId: null, status: null, type: 'warning' })}
+        onConfirm={confirmStatusUpdate}
+        onCancel={() => setConfirmDialog({ isOpen: false, orderId: null, newStatus: null })}
+        type="info"
       />
-    </AdminLayout>
+    </SalesStaffLayout>
   );
 };
 
-export default AdminOrdersPage;
+export default SalesStaffOrdersPage;

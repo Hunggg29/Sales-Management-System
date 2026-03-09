@@ -62,5 +62,26 @@ namespace SalesManagementAPI.Controllers
 
             return Ok(status);
         }
+
+        /// <summary>
+        /// Lấy hóa đơn theo OrderId
+        /// </summary>
+        [HttpGet("invoice/{orderId}")]
+        public async Task<IActionResult> GetInvoiceByOrderId(int orderId)
+        {
+            try
+            {
+                var invoice = await _paymentService.GetInvoiceByOrderIdAsync(orderId);
+                
+                if (invoice == null)
+                    return NotFound(new { message = "Không tìm thấy hóa đơn" });
+
+                return Ok(invoice);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

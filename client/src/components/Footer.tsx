@@ -187,7 +187,7 @@ const Footer = () => {
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
-          className="bg-red-600 text-white p-3 rounded-full shadow-xl hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white p-3 rounded-full shadow-xl hover:bg-red-700 transition-colors cursor-pointer"
           aria-label="Scroll to top"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
         >

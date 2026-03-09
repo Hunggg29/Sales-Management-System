@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MdArrowBack, MdLocalShipping, MdHistory, MdCheckCircle } from 'react-icons/md';
+import { MdArrowBack, MdLocalShipping, MdHistory, MdCheckCircle, MdPayment, MdReceipt } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { getOrderById } from '../../services/api';
+import { getOrderById, createBankTransferQR, getInvoiceByOrderId } from '../../services/api';
 import { OrderStatusBadge } from '../../components/shared';
+import QRPaymentModal from '../../components/QRPaymentModal';
 import type { Order } from '../../types';
 
 const OrderSuccessPage = () => {
@@ -11,6 +12,10 @@ const OrderSuccessPage = () => {
   const navigate = useNavigate();
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrData, setQrData] = useState<any>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [hasInvoice, setHasInvoice] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -19,6 +24,16 @@ const OrderSuccessPage = () => {
       try {
         const data = await getOrderById(parseInt(orderId));
         setOrder(data);
+        
+        // Check if invoice exists for paid orders
+        if (data.payment?.paymentStatus === 'PAID' || data.payment?.paymentStatus === 'Paid') {
+          try {
+            await getInvoiceByOrderId(parseInt(orderId));
+            setHasInvoice(true);
+          } catch {
+            setHasInvoice(false);
+          }
+        }
       } catch (err) {
         toast.error('Không thể tải thông tin đơn hàng');
         navigate('/');
@@ -82,7 +97,34 @@ const OrderSuccessPage = () => {
         return '';
     }
   };
+  const handlePayNow = async () => {
+    if (!order) return;
+    
+    setIsProcessingPayment(true);
+    try {
+      const qrResponse = await createBankTransferQR(order.orderID);
+      
+      if (qrResponse.success) {
+        setQrData(qrResponse);
+        setShowQRModal(true);
+        toast.success('Vui lòng quét mã QR để thanh toán');
+      } else {
+        throw new Error(qrResponse.message || 'Không thể tạo mã QR thanh toán');
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Không thể tạo mã thanh toán';
+      toast.error(errorMessage);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
+  const isOrderCompleted = order?.status === 'Completed' || order?.status === 'COMPLETED';
+  const isPaymentUnpaid = order?.payment?.paymentStatus === 'Unpaid' || order?.payment?.paymentStatus === 'UNPAID';
+  const isPaymentPaid = order?.payment?.paymentStatus === 'Paid' || order?.payment?.paymentStatus === 'PAID';
+  const canPayOnline = isOrderCompleted && isPaymentUnpaid;
+  const canViewInvoice = isPaymentPaid && hasInvoice;
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-3xl">
@@ -177,23 +219,61 @@ const OrderSuccessPage = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4">
-          <button
-            onClick={() => navigate('/')}
-            className="flex-1 flex items-center justify-center gap-2 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-          >
-            <MdArrowBack className="w-5 h-5" />
-            Về trang chủ
-          </button>
-          <button
-            onClick={() => navigate('/lich-su-don-hang')}
-            className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
-          >
-            <MdHistory className="w-5 h-5" />
-            Lịch sử đơn hàng
-          </button>
+        <div className="space-y-4">
+          {/* Payment Button for Completed & Unpaid Orders */}
+          {canPayOnline && (
+            <button
+              onClick={handlePayNow}
+              disabled={isProcessingPayment}
+              className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MdPayment className="w-6 h-6" />
+              {isProcessingPayment ? 'Đang xử lý...' : 'Thanh toán online ngay'}
+            </button>
+          )}
+
+          {/* View Invoice Button for Paid Orders */}
+          {canViewInvoice && (
+            <button
+              onClick={() => navigate(`/hoa-don/${orderId}`)}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            >
+              <MdReceipt className="w-6 h-6" />
+              Xem hóa đơn thanh toán
+            </button>
+          )}
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className="flex-1 flex items-center justify-center gap-2 bg-gray-200 text-gray-800 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+            >
+              <MdArrowBack className="w-5 h-5" />
+              Về trang chủ
+            </button>
+            <button
+              onClick={() => navigate('/lich-su-don-hang')}
+              className="flex-1 flex items-center justify-center gap-2 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            >
+              <MdHistory className="w-5 h-5" />
+              Lịch sử đơn hàng
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* QR Payment Modal */}
+      <QRPaymentModal
+        isOpen={showQRModal}
+        onClose={() => {
+          setShowQRModal(false);
+          // Refresh order data after closing payment modal
+          if (orderId) {
+            getOrderById(parseInt(orderId)).then(setOrder).catch(console.error);
+          }
+        }}
+        qrData={qrData}
+      />
     </div>
   );
 };

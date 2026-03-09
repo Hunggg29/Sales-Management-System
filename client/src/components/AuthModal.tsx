@@ -92,9 +92,12 @@ const AuthModal = ({ isOpen, onClose, mode, onSwitchMode }: AuthModalProps) => {
         onClose();
         
         // Điều hướng dựa trên role
-        if (response.user.role === 'Admin' || response.user.role === 'Staff') {
-          // Admin/Staff -> Dashboard
+        if (response.user.role === 'Admin') {
+          // Admin -> Admin Dashboard
           window.location.href = '/admin/dashboard';
+        } else if (response.user.role === 'Staff') {
+          // Staff -> Staff Dashboard
+          window.location.href = '/staff/dashboard';
         } else {
           // Customer -> Refresh cart và reload trang chủ
           await refreshCart();

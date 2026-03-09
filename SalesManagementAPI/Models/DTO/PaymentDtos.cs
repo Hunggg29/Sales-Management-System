@@ -20,6 +20,7 @@ namespace SalesManagementAPI.Models.DTO
 
     public class ConfirmPaymentResponseDto
     {
+        public bool Success { get; set; } = true;
         public string Message { get; set; } = string.Empty;
         public PaymentInfoDto Payment { get; set; } = null!;
         public InvoiceInfoDto Invoice { get; set; } = null!;

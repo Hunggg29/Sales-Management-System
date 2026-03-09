@@ -53,7 +53,7 @@ namespace SalesManagementAPI.Services.Implementations
 
                 if (payment != null)
                 {
-                    payment.PaymentStatus = "AwaitingPayment"; // Đang chờ thanh toán
+                    payment.PaymentStatus = PaymentStatus.UNPAID;
                     payment.PaymentDate = DateTime.Now;
                     await _context.SaveChangesAsync();
 
@@ -82,49 +82,78 @@ namespace SalesManagementAPI.Services.Implementations
                 if (payment == null)
                     throw new Exception("Không tìm thấy thông tin thanh toán");
 
-                if (payment.PaymentStatus == "Completed")
-                    throw new Exception("Đơn hàng đã được thanh toán");
+                // Check if invoice already exists
+                var existingInvoice = await _context.Invoices
+                    .Include(i => i.Order)
+                        .ThenInclude(o => o!.Customer)
+                    .Include(i => i.Order)
+                        .ThenInclude(o => o!.OrderDetails)
+                    .FirstOrDefaultAsync(i => i.OrderID == dto.OrderId);
 
-                // 2. Cập nhật Payment status
-                payment.PaymentStatus = "Completed";
-                payment.PaymentDate = DateTime.Now;
-                payment.TransactionCode = dto.TransactionCode ?? $"BANK{payment.OrderID}";
-
-                // 3. Cập nhật Order status
-                var order = payment.Order;
-                if (order != null)
+                if (payment.PaymentStatus == PaymentStatus.PAID && existingInvoice != null)
                 {
-                    order.Status = "Processing"; // Đã thanh toán, đang xử lý
+                    // Already confirmed, return existing invoice info
+                    return new ConfirmPaymentResponseDto
+                    {
+                        Message = "Thanh toán đã được xác nhận trước đó",
+                        Payment = new PaymentInfoDto
+                        {
+                            PaymentId = payment.PaymentID,
+                            OrderId = payment.OrderID,
+                            Status = payment.PaymentStatus.ToString(),
+                            Amount = payment.Amount
+                        },
+                        Invoice = new InvoiceInfoDto
+                        {
+                            InvoiceId = existingInvoice.InvoiceID,
+                            InvoiceNumber = existingInvoice.InvoiceNumber,
+                            TotalAmount = existingInvoice.TotalAmount,
+                            Tax = existingInvoice.Tax
+                        }
+                    };
                 }
 
-                // 4. Tạo Invoice (Hóa đơn)
-                var invoice = new Invoice
+                // 2. Cập nhật Payment status nếu chưa PAID
+                bool needUpdatePayment = payment.PaymentStatus != PaymentStatus.PAID;
+                if (needUpdatePayment)
                 {
-                    OrderID = payment.OrderID,
-                    StaffID = dto.StaffId,
-                    InvoiceNumber = GenerateInvoiceNumber(payment.OrderID),
-                    IssueDate = DateTime.Now,
-                    TotalAmount = payment.Amount,
-                    Tax = payment.Amount * 0.1m, // VAT 10%
-                    CustomerName = order?.Customer?.FullName ?? "Khách hàng",
-                    CustomerAddress = order?.Customer?.Address ?? "N/A"
-                };
+                    payment.PaymentStatus = PaymentStatus.PAID;
+                    payment.PaymentDate = DateTime.Now;
+                    payment.TransactionCode = dto.TransactionCode ?? $"BANK{payment.OrderID}";
+                }
 
-                _context.Invoices.Add(invoice);
+                var order = payment.Order;
 
-                // 5. Log thanh toán
-                var paymentLog = new PaymentLog
+                // 3. Tạo Invoice (Hóa đơn) nếu chưa có
+                Invoice invoice;
+                if (existingInvoice != null)
                 {
-                    PaymentID = payment.PaymentID,
-                    LogDate = DateTime.Now,
-                    LogMessage = $"Xác nhận thanh toán chuyển khoản. Mã giao dịch: {payment.TransactionCode}"
-                };
+                    invoice = existingInvoice;
+                    Console.WriteLine($"Using existing invoice #{invoice.InvoiceNumber} for Order #{payment.OrderID}");
+                }
+                else
+                {
+                    invoice = new Invoice
+                    {
+                        OrderID = payment.OrderID,
+                        StaffID = null, // Set to null to avoid foreign key issues
+                        InvoiceNumber = GenerateInvoiceNumber(payment.OrderID),
+                        IssueDate = DateTime.Now,
+                        TotalAmount = payment.Amount,
+                        Tax = payment.Amount * 0.1m, // VAT 10%
+                        CustomerName = order?.Customer?.FullName ?? "Khách hàng",
+                        CustomerAddress = order?.Customer?.Address ?? "N/A"
+                    };
 
-                _context.PaymentLogs.Add(paymentLog);
+                    _context.Invoices.Add(invoice);
+                    Console.WriteLine($"Creating new invoice #{invoice.InvoiceNumber} for Order #{payment.OrderID}");
+                }
 
-                await _context.SaveChangesAsync();
-
-                Console.WriteLine($"Payment confirmed for Order #{payment.OrderID}. Invoice #{invoice.InvoiceNumber} created.");
+                if (needUpdatePayment || existingInvoice == null)
+                {
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"Payment confirmed for Order #{payment.OrderID}. Invoice #{invoice.InvoiceNumber}");
+                }
 
                 return new ConfirmPaymentResponseDto
                 {
@@ -133,7 +162,7 @@ namespace SalesManagementAPI.Services.Implementations
                     {
                         PaymentId = payment.PaymentID,
                         OrderId = payment.OrderID,
-                        Status = payment.PaymentStatus,
+                        Status = payment.PaymentStatus.ToString(),
                         Amount = payment.Amount
                     },
                     Invoice = new InvoiceInfoDto
@@ -148,7 +177,9 @@ namespace SalesManagementAPI.Services.Implementations
             catch (Exception ex)
             {
                 Console.WriteLine($"Error confirming bank transfer: {ex.Message}");
-                throw;
+                Console.WriteLine($"Inner exception: {ex.InnerException?.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw new Exception($"Lỗi khi xác nhận thanh toán: {ex.InnerException?.Message ?? ex.Message}");
             }
         }
 
@@ -164,13 +195,23 @@ namespace SalesManagementAPI.Services.Implementations
             return new PaymentStatusDto
             {
                 OrderId = payment.OrderID,
-                PaymentMethod = payment.PaymentMethod,
-                PaymentStatus = payment.PaymentStatus,
+                PaymentMethod = payment.PaymentMethod.ToString(),
+                PaymentStatus = payment.PaymentStatus.ToString(),
                 Amount = payment.Amount,
                 TransactionCode = payment.TransactionCode,
                 PaymentDate = payment.PaymentDate,
-                OrderStatus = payment.Order?.Status
+                OrderStatus = payment.Order?.Status.ToString()
             };
+        }
+
+        public async Task<Invoice?> GetInvoiceByOrderIdAsync(int orderId)
+        {
+            return await _context.Invoices
+                .Include(i => i.Order)
+                    .ThenInclude(o => o!.Customer)
+                .Include(i => i.Order)
+                    .ThenInclude(o => o!.OrderDetails)
+                .FirstOrDefaultAsync(i => i.OrderID == orderId);
         }
 
         private string GenerateInvoiceNumber(int orderId)

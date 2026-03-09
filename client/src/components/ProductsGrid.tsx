@@ -78,7 +78,7 @@ const ProductsGrid = ({
           {selectedCategoryID !== null && (
             <button
               onClick={onClearFilter}
-              className="text-sm text-gray-500 hover:text-red-600 underline transition-colors"
+              className="text-sm text-gray-500 hover:text-red-600 underline transition-colors cursor-pointer"
             >
               Xem tất cả
             </button>

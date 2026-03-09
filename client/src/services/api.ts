@@ -725,6 +725,59 @@ export async function createBankTransferQR(orderId: number): Promise<{
 }
 
 /**
+ * Confirm payment by admin
+ * POST /api/Payment/confirm-bank-transfer
+ * 
+ * @param orderId - The ID of the order
+ * @param staffId - The ID of the staff confirming (optional, default 1)
+ * @param transactionCode - Transaction code (optional)
+ * @returns Promise with confirmation result
+ */
+export async function confirmPayment(
+  orderId: number, 
+  staffId: number = 1, 
+  transactionCode?: string
+): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Payment/confirm-bank-transfer`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ 
+      orderId, 
+      staffId,
+      transactionCode 
+    }),
+  });
+
+  return handleResponse<{
+    success: boolean;
+    message: string;
+  }>(response);
+}
+
+/**
+ * Get invoice by order ID
+ * GET /api/Payment/invoice/{orderId}
+ * 
+ * @param orderId - The ID of the order
+ * @returns Promise with invoice details
+ */
+export async function getInvoiceByOrderId(orderId: number): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/Payment/invoice/${orderId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<any>(response);
+}
+
+/**
  * STATISTICS ENDPOINTS
  */
 
