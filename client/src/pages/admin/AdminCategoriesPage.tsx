@@ -7,6 +7,7 @@ import {
   MdSearch,
   MdClose,
   MdSave,
+  MdCheck,
   MdCategory,
   MdInventory,
 } from 'react-icons/md';
@@ -33,6 +34,11 @@ const AdminCategoriesPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({
+    categoryName: '',
+    description: '',
+  });
+  const [inlineEditingId, setInlineEditingId] = useState<number | null>(null);
+  const [inlineFormData, setInlineFormData] = useState<CategoryFormData>({
     categoryName: '',
     description: '',
   });
@@ -76,20 +82,83 @@ const AdminCategoriesPage = () => {
     setEditingCategory(null);
   };
 
+  const normalizeCategoryName = (name: string) => name.trim().toLowerCase();
+
+  const hasDuplicateName = (name: string, excludedId?: number) => {
+    const normalizedInput = normalizeCategoryName(name);
+    if (!normalizedInput) return false;
+
+    return categories.some((category) => {
+      if (excludedId && category.categoryID === excludedId) return false;
+      return normalizeCategoryName(category.categoryName) === normalizedInput;
+    });
+  };
+
+  const modalNameDuplicated = hasDuplicateName(formData.categoryName, editingCategory?.categoryID);
+
+  const handleStartInlineEdit = (category: Category) => {
+    setInlineEditingId(category.categoryID);
+    setInlineFormData({
+      categoryName: category.categoryName,
+      description: category.description || '',
+    });
+  };
+
+  const handleCancelInlineEdit = () => {
+    setInlineEditingId(null);
+    setInlineFormData({ categoryName: '', description: '' });
+  };
+
+  const handleSaveInlineEdit = async (categoryId: number) => {
+    const categoryName = inlineFormData.categoryName.trim();
+    if (!categoryName) {
+      toast.error('Tên danh mục không được để trống');
+      return;
+    }
+
+    if (hasDuplicateName(categoryName, categoryId)) {
+      toast.error('Tên danh mục đã tồn tại');
+      return;
+    }
+
+    try {
+      await updateCategory(categoryId, {
+        categoryName,
+        description: inlineFormData.description.trim() || undefined,
+      });
+      toast.success('Cập nhật danh mục thành công');
+      handleCancelInlineEdit();
+      fetchCategories();
+    } catch (error: any) {
+      toast.error(error.message || 'Không thể cập nhật danh mục');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const categoryName = formData.categoryName.trim();
+    if (!categoryName) {
+      toast.error('Tên danh mục không được để trống');
+      return;
+    }
+
+    if (hasDuplicateName(categoryName, editingCategory?.categoryID)) {
+      toast.error('Tên danh mục đã tồn tại');
+      return;
+    }
 
     try {
       if (editingCategory) {
         await updateCategory(editingCategory.categoryID, {
-          categoryName: formData.categoryName,
-          description: formData.description || undefined,
+          categoryName,
+          description: formData.description.trim() || undefined,
         });
         toast.success('Cập nhật danh mục thành công');
       } else {
         await createCategory({
-          categoryName: formData.categoryName,
-          description: formData.description || undefined,
+          categoryName,
+          description: formData.description.trim() || undefined,
         });
         toast.success('Thêm danh mục thành công');
       }
@@ -236,25 +305,58 @@ const AdminCategoriesPage = () => {
                 className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300"
               >
                 <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
-                        <MdCategory className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-800">
-                          {category.categoryName}
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          ID: {category.categoryID}
-                        </p>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3 w-full">
+                        <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center shrink-0">
+                          <MdCategory className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="w-full">
+                          {inlineEditingId === category.categoryID ? (
+                            <>
+                              <input
+                                type="text"
+                                value={inlineFormData.categoryName}
+                                onChange={(e) =>
+                                  setInlineFormData((prev) => ({ ...prev, categoryName: e.target.value }))
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm font-semibold"
+                                placeholder="Tên danh mục"
+                              />
+                              {hasDuplicateName(inlineFormData.categoryName, category.categoryID) && (
+                                <p className="mt-1 text-xs font-medium text-red-600">Tên danh mục đã tồn tại</p>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <h3 className="text-lg font-bold text-gray-800">
+                                {category.categoryName}
+                              </h3>
+                              <p className="text-xs text-gray-500">
+                                ID: {category.categoryID}
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[40px]">
-                    {category.description || 'Chưa có mô tả'}
-                  </p>
+                  {inlineEditingId === category.categoryID ? (
+                    <div className="mb-4">
+                      <textarea
+                        rows={2}
+                        value={inlineFormData.description}
+                        onChange={(e) =>
+                          setInlineFormData((prev) => ({ ...prev, description: e.target.value }))
+                        }
+                        placeholder="Mô tả danh mục"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm resize-none"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[40px]">
+                      {category.description || 'Chưa có mô tả'}
+                    </p>
+                  )}
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                     <div className="flex items-center gap-2">
@@ -265,22 +367,54 @@ const AdminCategoriesPage = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleOpenModal(category)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Chỉnh sửa"
-                      >
-                        <MdEdit className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDelete(category.categoryID, category.categoryName)
-                        }
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Xóa"
-                      >
-                        <MdDelete className="w-5 h-5" />
-                      </button>
+                      {inlineEditingId === category.categoryID ? (
+                        <>
+                          <button
+                            onClick={() => handleSaveInlineEdit(category.categoryID)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Lưu nhanh"
+                            disabled={
+                              !inlineFormData.categoryName.trim() ||
+                              hasDuplicateName(inlineFormData.categoryName, category.categoryID)
+                            }
+                          >
+                            <MdCheck className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={handleCancelInlineEdit}
+                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Hủy"
+                          >
+                            <MdClose className="w-5 h-5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStartInlineEdit(category)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Sửa nhanh"
+                          >
+                            <MdEdit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenModal(category)}
+                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            title="Mở form chỉnh sửa"
+                          >
+                            <MdSave className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDelete(category.categoryID, category.categoryName)
+                            }
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Xóa"
+                          >
+                            <MdDelete className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -369,6 +503,9 @@ const AdminCategoriesPage = () => {
                       placeholder="Nhập tên danh mục"
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                     />
+                    {modalNameDuplicated && (
+                      <p className="mt-2 text-sm font-medium text-red-600">Tên danh mục đã tồn tại</p>
+                    )}
                   </div>
 
                   <div>
@@ -389,6 +526,7 @@ const AdminCategoriesPage = () => {
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <button
                       type="submit"
+                      disabled={modalNameDuplicated || !formData.categoryName.trim()}
                       className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold shadow-sm"
                     >
                       <MdSave className="w-5 h-5" />

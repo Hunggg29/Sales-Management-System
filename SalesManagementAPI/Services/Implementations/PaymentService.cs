@@ -92,6 +92,12 @@ namespace SalesManagementAPI.Services.Implementations
 
                 if (payment.PaymentStatus == PaymentStatus.PAID && existingInvoice != null)
                 {
+                    if (payment.Order?.Status == OrderStatus.DELIVERED)
+                    {
+                        payment.Order.Status = OrderStatus.COMPLETED;
+                        await _context.SaveChangesAsync();
+                    }
+
                     // Already confirmed, return existing invoice info
                     return new ConfirmPaymentResponseDto
                     {
@@ -123,6 +129,12 @@ namespace SalesManagementAPI.Services.Implementations
                 }
 
                 var order = payment.Order;
+
+                // Nếu đơn đã giao thành công và vừa xác nhận thanh toán => tự động hoàn thành
+                if (order != null && order.Status == OrderStatus.DELIVERED && payment.PaymentStatus == PaymentStatus.PAID)
+                {
+                    order.Status = OrderStatus.COMPLETED;
+                }
 
                 // 3. Tạo Invoice (Hóa đơn) nếu chưa có
                 Invoice invoice;

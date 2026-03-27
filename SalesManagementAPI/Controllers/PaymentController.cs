@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SalesManagementAPI.Models.DTO;
 using SalesManagementAPI.Services.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace SalesManagementAPI.Controllers
 {
@@ -64,6 +65,43 @@ namespace SalesManagementAPI.Controllers
         }
 
         /// <summary>
+        /// Webhook tự động từ SePay — xác nhận thanh toán khi ngân hàng ghi nhận giao dịch
+        /// POST /api/Payment/sepay-webhook
+        /// </summary>
+        [HttpPost("sepay-webhook")]
+        public async Task<IActionResult> SepayWebhook([FromBody] SepayWebhookDto dto)
+        {
+            try
+            {
+                // Tìm orderId trong nội dung chuyển khoản, định dạng "DH{orderId}" (vd: "DH42")
+                var match = Regex.Match(dto.Content ?? "", @"DH(\d+)", RegexOptions.IgnoreCase);
+                if (!match.Success)
+                    return Ok(new { success = true, message = "Giao dịch không liên quan" });
+
+                var orderId = int.Parse(match.Groups[1].Value);
+
+                var confirmDto = new ConfirmPaymentDto
+                {
+                    OrderId = orderId,
+                    TransactionCode = dto.TransferCode,
+                    StaffId = 0 // 0 = hệ thống tự động
+                };
+
+                await _paymentService.ConfirmBankTransferAsync(confirmDto);
+
+                Console.WriteLine($"[SePay Webhook] Đã tự động xác nhận thanh toán cho đơn #{orderId}, mã GD: {dto.TransferCode}");
+
+                return Ok(new { success = true, message = $"Xác nhận thanh toán đơn #{orderId} thành công" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SePay Webhook] Lỗi: {ex.Message}");
+                // Trả về 200 để SePay không retry liên tục
+                return Ok(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Lấy hóa đơn theo OrderId
         /// </summary>
         [HttpGet("invoice/{orderId}")]
@@ -72,7 +110,7 @@ namespace SalesManagementAPI.Controllers
             try
             {
                 var invoice = await _paymentService.GetInvoiceByOrderIdAsync(orderId);
-                
+
                 if (invoice == null)
                     return NotFound(new { message = "Không tìm thấy hóa đơn" });
 

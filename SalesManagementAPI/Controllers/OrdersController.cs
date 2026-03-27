@@ -51,10 +51,23 @@ namespace SalesManagementAPI.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        public async Task<IActionResult> GetOrdersByUserId([FromRoute] int userId)
+        public async Task<IActionResult> GetOrdersByUserId(
+            [FromRoute] int userId,
+            [FromQuery] int? page = null,
+            [FromQuery] int? pageSize = null)
         {
-            var orders = await _orderService.GetOrdersByUserIdAsync(userId);
-            return Ok(orders);
+            // Backward-compatible mode: no paging params => return full list
+            if (!page.HasValue && !pageSize.HasValue)
+            {
+                var allOrders = await _orderService.GetOrdersByUserIdAsync(userId);
+                return Ok(allOrders);
+            }
+
+            var safePage = Math.Max(page ?? 1, 1);
+            var safePageSize = Math.Clamp(pageSize ?? 10, 1, 50);
+
+            var pagedOrders = await _orderService.GetOrdersByUserIdPagedAsync(userId, safePage, safePageSize);
+            return Ok(pagedOrders);
         }
 
         [HttpGet]
@@ -77,9 +90,13 @@ namespace SalesManagementAPI.Controllers
         [HttpPut("{orderId}/status")]
         public async Task<IActionResult> UpdateOrderStatus([FromRoute] int orderId, [FromBody] UpdateOrderStatusDto dto)
         {
+            var order = await _orderService.GetOrderByIdAsync(orderId);
+            if (order == null)
+                return NotFound(new { message = "Không tìm thấy đơn hàng" });
+
             var success = await _orderService.UpdateOrderStatusAsync(orderId, dto.Status);
             if (!success)
-                return NotFound(new { message = "Không tìm thấy đơn hàng" });
+                return BadRequest(new { message = "Trạng thái chuyển đổi không hợp lệ" });
 
             return Ok(new { message = "Cập nhật trạng thái thành công" });
         }

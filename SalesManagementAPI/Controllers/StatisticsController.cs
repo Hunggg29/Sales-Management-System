@@ -59,24 +59,24 @@ namespace SalesManagementAPI.Controllers
         // Doanh thu (CHỊ TÍNH KHI ORDER = COMPLETED VÀ PAYMENT = PAID)
         var totalRevenue = await _context.Orders
             .Include(o => o.Payments)
-            .Where(o => o.Status == OrderStatus.COMPLETED && 
-                   o.Payments != null && 
+            .Where(o => o.Status == OrderStatus.COMPLETED &&
+                   o.Payments != null &&
                    o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-            
+
         var revenueThisMonth = await _context.Orders
             .Include(o => o.Payments)
             .Where(o => o.OrderDate >= currentMonth &&
-                   o.Status == OrderStatus.COMPLETED && 
-                   o.Payments != null && 
+                   o.Status == OrderStatus.COMPLETED &&
+                   o.Payments != null &&
                    o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-            
+
         var revenueLastMonth = await _context.Orders
             .Include(o => o.Payments)
             .Where(o => o.OrderDate >= previousMonth && o.OrderDate < currentMonth &&
-                   o.Status == OrderStatus.COMPLETED && 
-                   o.Payments != null && 
+                   o.Status == OrderStatus.COMPLETED &&
+                   o.Payments != null &&
                    o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
 
@@ -117,8 +117,8 @@ namespace SalesManagementAPI.Controllers
         var monthlyData = await _context.Orders
             .Include(o => o.Payments)
             .Where(o => o.OrderDate >= startDate &&
-                   o.Status == OrderStatus.COMPLETED && 
-                   o.Payments != null && 
+                   o.Status == OrderStatus.COMPLETED &&
+                   o.Payments != null &&
                    o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
             .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
             .Select(g => new

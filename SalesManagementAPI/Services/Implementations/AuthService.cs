@@ -87,7 +87,9 @@ namespace SalesManagementAPI.Services.Implementations
 
         public async Task<(bool success, string token, string role)> AdminLoginAsync(string email, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _context.Users
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null || !BC.Verify(password, user.PasswordHash))
             {
@@ -98,6 +100,19 @@ namespace SalesManagementAPI.Services.Implementations
             if (user.Role != "Admin" && user.Role != "Staff")
             {
                 return (false, "Bạn không có quyền truy cập vào trang quản trị", "");
+            }
+
+            if (user.Role == "Staff")
+            {
+                if (user.Employee == null)
+                {
+                    return (false, "Tài khoản Staff chưa có hồ sơ nhân viên. Vui lòng liên hệ quản trị viên.", "");
+                }
+
+                if (!user.Employee.IsActive)
+                {
+                    return (false, "Hồ sơ nhân viên đã bị vô hiệu hóa", "");
+                }
             }
 
             if (!user.IsActive)
@@ -135,6 +150,21 @@ namespace SalesManagementAPI.Services.Implementations
 
             await _context.Users.AddAsync(user);
             await _context.SaveChangesAsync();
+
+            if (role == "Staff")
+            {
+                var employee = new Employee
+                {
+                    UserID = user.UserID,
+                    EmployeeType = EmployeeType.Sales,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                await _context.Employees.AddAsync(employee);
+                await _context.SaveChangesAsync();
+            }
+
             return (true, $"{role} registered successfully");
         }
 
@@ -149,6 +179,14 @@ namespace SalesManagementAPI.Services.Implementations
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, user.Role)
             };
+
+            if (user.Role == "Staff" && user.Employee != null)
+            {
+                claims = claims
+                    .Append(new Claim("employee_type", user.Employee.EmployeeType.ToString()))
+                    .Append(new Claim("employee_type_id", ((int)user.Employee.EmployeeType).ToString()))
+                    .ToArray();
+            }
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],

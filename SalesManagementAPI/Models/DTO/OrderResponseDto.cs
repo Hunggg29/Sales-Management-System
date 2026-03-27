@@ -31,4 +31,14 @@ namespace SalesManagementAPI.Models.DTO
         public string? TransactionCode { get; set; }
         public decimal Amount { get; set; }
     }
+
+    public class PagedOrdersResponseDto
+    {
+        public List<OrderResponseDto> Items { get; set; } = new();
+        public int Page { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+        public bool HasNextPage { get; set; }
+    }
 }

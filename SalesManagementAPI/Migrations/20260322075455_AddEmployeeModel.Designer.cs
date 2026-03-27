@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalesManagementAPI.Data;
 
@@ -11,9 +12,11 @@ using SalesManagementAPI.Data;
 namespace SalesManagementAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260322075455_AddEmployeeModel")]
+    partial class AddEmployeeModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,8 +128,7 @@ namespace SalesManagementAPI.Migrations
 
                     b.HasKey("CustomerID");
 
-                    b.HasIndex("UserID")
-                        .IsUnique();
+                    b.HasIndex("UserID");
 
                     b.ToTable("Customers");
                 });
@@ -390,6 +392,41 @@ namespace SalesManagementAPI.Migrations
                     b.ToTable("Settings");
                 });
 
+            modelBuilder.Entity("SalesManagementAPI.Models.Supplier", b =>
+                {
+                    b.Property<int>("SupplierID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("SupplierID");
+
+                    b.ToTable("Suppliers");
+                });
+
             modelBuilder.Entity("SalesManagementAPI.Models.User", b =>
                 {
                     b.Property<int>("UserID")
@@ -458,8 +495,8 @@ namespace SalesManagementAPI.Migrations
             modelBuilder.Entity("SalesManagementAPI.Models.Customer", b =>
                 {
                     b.HasOne("SalesManagementAPI.Models.User", "User")
-                        .WithOne("Customer")
-                        .HasForeignKey("SalesManagementAPI.Models.Customer", "UserID")
+                        .WithMany("Customers")
+                        .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -596,7 +633,7 @@ namespace SalesManagementAPI.Migrations
 
             modelBuilder.Entity("SalesManagementAPI.Models.User", b =>
                 {
-                    b.Navigation("Customer");
+                    b.Navigation("Customers");
 
                     b.Navigation("Employee");
 

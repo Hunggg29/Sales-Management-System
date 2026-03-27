@@ -57,7 +57,7 @@ const NewsSection = ({ articles }: NewsSectionProps) => {
               whileHover={{ y: -5 }}
               className="bg-white border border-[#EAEAEA] rounded-lg overflow-hidden cursor-pointer group"
             >
-              <Link to={`/news/${article.id}`}>
+              <Link to={`/tin-tuc/${article.id}`}>
                 <div className="aspect-video bg-[#FCFCFC] border border-[#EAEAEA] overflow-hidden">
                   <motion.img
                     src={article.image}

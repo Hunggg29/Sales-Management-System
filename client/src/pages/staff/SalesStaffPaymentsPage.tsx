@@ -40,7 +40,7 @@ const SalesStaffPaymentsPage = () => {
       const orders = await getAllOrders();
       
       // Chỉ lấy đơn hàng đã được duyệt trở lên
-      const confirmedStatuses = ['APPROVED', 'PROCESSING', 'SHIPPING', 'COMPLETED'];
+      const confirmedStatuses = ['APPROVED', 'SHIPPING', 'DELIVERED', 'COMPLETED'];
       
       const paymentData: Payment[] = orders
         .filter(order => order.payment && confirmedStatuses.includes(order.status.toUpperCase()))

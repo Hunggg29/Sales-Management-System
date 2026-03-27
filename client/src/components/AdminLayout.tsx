@@ -15,6 +15,7 @@ import {
   MdClose,
   MdNotifications,
   MdNotificationsActive,
+  MdBadge,
 } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { createOrderNotificationConnection, startConnection, stopConnection } from '../services/signalRService';
@@ -44,6 +45,7 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -216,10 +218,10 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
     { icon: MdShoppingCart, label: 'Đơn hàng', path: '/admin/orders', color: 'text-green-600' },
     { icon: MdPeople, label: 'Khách hàng', path: '/admin/customers', color: 'text-purple-600' },
     { icon: MdInventory, label: 'Sản phẩm', path: '/admin/products', color: 'text-orange-600' },
+    { icon: MdBadge, label: 'Nhân viên', path: '/admin/employees', color: 'text-sky-600' },
     { icon: MdCategory, label: 'Danh mục', path: '/admin/categories', color: 'text-pink-600' },
     { icon: MdAttachMoney, label: 'Thanh toán', path: '/admin/payments', color: 'text-emerald-600' },
     { icon: MdBarChart, label: 'Báo cáo', path: '/admin/reports', color: 'text-indigo-600' },
-    { icon: MdSettings, label: 'Cài đặt', path: '/admin/settings', color: 'text-gray-600' },
   ];
 
   if (!currentUser) {
@@ -242,7 +244,7 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
         <div className="h-20 flex items-center justify-between px-6 border-b border-gray-200">
           <div>
             <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
-            <p className="text-xs text-gray-500">Sales Management</p>
+            <p className="text-xs text-gray-500">Công ty TNHH Karota Việt Nam</p>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
@@ -282,27 +284,7 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
           })}
         </nav>
 
-        {/* User Profile in Sidebar */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold">
-              {currentUser.userName.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-800 truncate">
-                {currentUser.userName}
-              </p>
-              <p className="text-xs text-gray-500">{currentUser.role}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            <MdLogout className="w-4 h-4" />
-            <span className="font-medium">Đăng xuất</span>
-          </button>
-        </div>
+
       </aside>
 
       {/* Overlay for mobile */}
@@ -426,9 +408,44 @@ const AdminLayout = ({ children, title, subtitle }: AdminLayoutProps) => {
               )}
             </div>
 
-            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-gray-700">Online</span>
+            {/* User Avatar Dropdown */}
+            <div
+              className="relative"
+              onMouseEnter={() => setShowUserMenu(true)}
+              onMouseLeave={() => setShowUserMenu(false)}
+            >
+              <button className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <div className="w-9 h-9 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {currentUser.userName.charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-semibold text-gray-800 leading-tight">{currentUser.userName}</p>
+                  <p className="text-xs text-gray-500">{currentUser.role}</p>
+                </div>
+              </button>
+
+              {/* Dropdown menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 top-full pt-1 w-48 z-50">
+                  <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-1 overflow-hidden">
+                    <button
+                      onClick={() => { navigate('/admin/settings'); setShowUserMenu(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <MdSettings className="w-5 h-5 text-gray-500" />
+                      <span>Cài đặt</span>
+                    </button>
+                    <div className="border-t border-gray-100 mx-3" />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <MdLogout className="w-5 h-5" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Button } from '../components/shared';
 import { MdContentCopy, MdCheckCircle, MdInfo } from 'react-icons/md';
 import { toast } from 'react-toastify';
+
+const PAYMENT_POLL_INTERVAL = 5000; // 5 giây
+const API_BASE_URL = 'https://localhost:7078/api';
 
 interface QRPaymentModalProps {
   isOpen: boolean;
@@ -21,7 +24,47 @@ interface QRPaymentModalProps {
 const QRPaymentModal = ({ isOpen, onClose, qrData }: QRPaymentModalProps) => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(600); // 10 phút = 600 giây
+  const [isPaid, setIsPaid] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Reset trạng thái mỗi lần mở modal
+  useEffect(() => {
+    if (isOpen) {
+      setCountdown(600);
+      setIsPaid(false);
+    }
+  }, [isOpen]);
+
+  // Polling kiểm tra trạng thái thanh toán mỗi 5 giây
+  useEffect(() => {
+    if (!isOpen || !qrData) return;
+
+    const stopPolling = () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/Payment/check-payment-status/${qrData.orderId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.paymentStatus?.toUpperCase() === 'PAID') {
+          stopPolling();
+          setIsPaid(true);
+          toast.success('Đơn hàng đã được thanh toán thành công!');
+        }
+      } catch {
+        // bỏ qua lỗi mạng tạm thời
+      }
+    }, PAYMENT_POLL_INTERVAL);
+
+    return stopPolling;
+  }, [isOpen, qrData]);
+
+  // Countdown timer
   useEffect(() => {
     if (!isOpen) return;
 
@@ -57,6 +100,37 @@ const QRPaymentModal = ({ isOpen, onClose, qrData }: QRPaymentModalProps) => {
   };
 
   if (!qrData) return null;
+
+  // Giao diện sau khi thanh toán thành công
+  if (isPaid) {
+    return (
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Thanh toán thành công"
+        closeOnBackdropClick={false}
+      >
+        <div className="flex flex-col items-center gap-6 py-4">
+          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
+            <MdCheckCircle className="w-12 h-12 text-green-500" />
+          </div>
+          <div className="text-center">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Đã xác nhận thanh toán!</h3>
+            <p className="text-gray-600">Hệ thống đã ghi nhận giao dịch của bạn.</p>
+            <p className="text-gray-600">Hóa đơn sẽ được xuất tự động.</p>
+          </div>
+          <div className="flex gap-3 w-full">
+            <Button variant="secondary" onClick={onClose} fullWidth>
+              Đóng
+            </Button>
+            <Button variant="primary" onClick={() => { onClose(); navigate(`/don-hang/${qrData.orderId}`); }} fullWidth>
+              Xem đơn hàng
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal

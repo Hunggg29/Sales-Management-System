@@ -33,7 +33,7 @@ namespace SalesManagementAPI.Services.Implementations
 
                     // Get cart with items
                     var cart = await _context.Carts
-                        .Include(c => c.CartItems)
+                        .Include(c => c.CartItems!)
                         .ThenInclude(ci => ci.Product)
                         .FirstOrDefaultAsync(c => c.CustomerID == customer.CustomerID);
 
@@ -49,7 +49,7 @@ namespace SalesManagementAPI.Services.Implementations
                         CustomerID = customer.CustomerID,
                         OrderDate = DateTime.Now,
                         TotalAmount = totalAmount,
-                        Status = OrderStatus.PENDING
+                        Status = OrderStatus.CREATED
                     };
 
                     _context.Orders.Add(order);
@@ -135,7 +135,7 @@ namespace SalesManagementAPI.Services.Implementations
                 return new List<OrderResponseDto>();
 
             var orders = await _context.Orders
-                .Include(o => o.OrderDetails)
+                .Include(o => o.OrderDetails!)
                     .ThenInclude(od => od.Product)
                 .Include(o => o.Payments)
                 .Where(o => o.CustomerID == customer.CustomerID)
@@ -145,11 +145,53 @@ namespace SalesManagementAPI.Services.Implementations
             return orders.Select(o => MapToOrderResponse(o)).ToList();
         }
 
+        public async Task<PagedOrdersResponseDto> GetOrdersByUserIdPagedAsync(int userId, int page, int pageSize)
+        {
+            var customer = await _context.Customers.FirstOrDefaultAsync(c => c.UserID == userId);
+            if (customer == null)
+            {
+                return new PagedOrdersResponseDto
+                {
+                    Items = new List<OrderResponseDto>(),
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = 0,
+                    TotalPages = 0,
+                    HasNextPage = false
+                };
+            }
+
+            var baseQuery = _context.Orders
+                .Include(o => o.OrderDetails!)
+                    .ThenInclude(od => od.Product)
+                .Include(o => o.Payments)
+                .Where(o => o.CustomerID == customer.CustomerID)
+                .OrderByDescending(o => o.OrderDate);
+
+            var totalCount = await baseQuery.CountAsync();
+            var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            var orders = await baseQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedOrdersResponseDto
+            {
+                Items = orders.Select(MapToOrderResponse).ToList(),
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasNextPage = page < totalPages
+            };
+        }
+
         public async Task<List<OrderResponseDto>> GetAllOrdersAsync()
         {
             var orders = await _context.Orders
                 .Include(o => o.Customer)
-                .Include(o => o.OrderDetails)
+                .Include(o => o.OrderDetails!)
                     .ThenInclude(od => od.Product)
                 .Include(o => o.Payments)
                 .OrderByDescending(o => o.OrderDate)
@@ -160,12 +202,14 @@ namespace SalesManagementAPI.Services.Implementations
 
         private OrderResponseDto MapToOrderResponse(Order o)
         {
+            var normalizedStatus = NormalizeLegacyOrderStatus(o.Status);
+
             return new OrderResponseDto
             {
                 OrderID = o.OrderID,
                 OrderDate = o.OrderDate,
                 TotalAmount = o.TotalAmount,
-                Status = o.Status.ToString(),
+                Status = normalizedStatus.ToString(),
                 PaymentMethod = o.Payments?.FirstOrDefault()?.PaymentMethod.ToString() ?? "COD",
                 Customer = o.Customer != null ? new CreateCustomerDto
                 {
@@ -200,7 +244,7 @@ namespace SalesManagementAPI.Services.Implementations
         {
             var order = await _context.Orders
                 .Include(o => o.Customer)
-                .Include(o => o.OrderDetails)
+                .Include(o => o.OrderDetails!)
                     .ThenInclude(od => od.Product)
                 .Include(o => o.Payments)
                 .FirstOrDefaultAsync(o => o.OrderID == orderId);
@@ -213,13 +257,36 @@ namespace SalesManagementAPI.Services.Implementations
 
         public async Task<bool> UpdateOrderStatusAsync(int orderId, string status)
         {
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await _context.Orders
+                .Include(o => o.Payments)
+                .FirstOrDefaultAsync(o => o.OrderID == orderId);
             if (order == null)
                 return false;
+
+            var currentStatus = NormalizeLegacyOrderStatus(order.Status);
+            if (currentStatus != order.Status)
+            {
+                order.Status = currentStatus;
+            }
 
             // Parse string to enum
             if (Enum.TryParse<OrderStatus>(status, out var orderStatus))
             {
+                if (!CanTransition(currentStatus, orderStatus))
+                {
+                    return false;
+                }
+
+                // COMPLETED chỉ hợp lệ khi đơn đã DELIVERED và payment đã PAID
+                if (orderStatus == OrderStatus.COMPLETED)
+                {
+                    var hasPaidPayment = order.Payments?.Any(p => p.PaymentStatus == PaymentStatus.PAID) == true;
+                    if (currentStatus != OrderStatus.DELIVERED || !hasPaidPayment)
+                    {
+                        return false;
+                    }
+                }
+
                 order.Status = orderStatus;
                 await _context.SaveChangesAsync();
                 return true;
@@ -234,7 +301,11 @@ namespace SalesManagementAPI.Services.Implementations
                 .Include(o => o.Payments)
                 .FirstOrDefaultAsync(o => o.OrderID == orderId);
 
-            if (order == null || order.Status != OrderStatus.PENDING)
+            if (order == null)
+                return false;
+
+            var currentStatus = NormalizeLegacyOrderStatus(order.Status);
+            if (!CanTransition(currentStatus, OrderStatus.CANCELLED))
                 return false;
 
             order.Status = OrderStatus.CANCELLED;
@@ -254,6 +325,32 @@ namespace SalesManagementAPI.Services.Implementations
         private string GenerateTransactionCode()
         {
             return $"TXN{DateTime.Now:yyyyMMddHHmmss}{new Random().Next(1000, 9999)}";
+        }
+
+        private static bool CanTransition(OrderStatus current, OrderStatus next)
+        {
+            if (current == next)
+                return true;
+
+            return current switch
+            {
+                OrderStatus.CREATED => next == OrderStatus.APPROVED || next == OrderStatus.CANCELLED,
+                OrderStatus.APPROVED => next == OrderStatus.SHIPPING || next == OrderStatus.CANCELLED,
+                OrderStatus.SHIPPING => next == OrderStatus.DELIVERED || next == OrderStatus.CANCELLED,
+                OrderStatus.DELIVERED => next == OrderStatus.COMPLETED,
+                OrderStatus.COMPLETED => false,
+                OrderStatus.CANCELLED => false,
+                _ => false
+            };
+        }
+
+        private static OrderStatus NormalizeLegacyOrderStatus(OrderStatus status)
+        {
+            // Legacy value 1 (old PENDING) được quy về CREATED theo workflow mới.
+            if ((int)status == 1)
+                return OrderStatus.CREATED;
+
+            return status;
         }
     }
 }

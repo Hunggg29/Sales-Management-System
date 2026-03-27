@@ -7,3 +7,4 @@ export { default as AdminOrdersPage } from './AdminOrdersPage';
 export { default as AdminReportsPage } from './AdminReportsPage';
 export { default as AdminPaymentsPage } from './AdminPaymentsPage';
 export { default as AdminSettingsPage } from './AdminSettingsPage';
+export { default as AdminEmployeesPage } from './AdminEmployeesPage';

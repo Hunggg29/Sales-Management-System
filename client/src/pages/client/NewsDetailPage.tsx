@@ -100,11 +100,11 @@ const NewsDetailPage = () => {
             >
               <div className="bg-white rounded-lg shadow-md overflow-hidden">
                 {/* Featured Image */}
-                <div className="aspect-video overflow-hidden bg-gray-100">
+                <div className="aspect-video overflow-hidden bg-gray-100 p-3 sm:p-4">
                   <img
                     src={article.image}
                     alt={article.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     onError={(e) => {
                       e.currentTarget.src =
                         'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="450"%3E%3Crect fill="%23f0f0f0" width="800" height="450"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="20"%3ENews Image%3C/text%3E%3C/svg%3E';
@@ -193,11 +193,11 @@ const NewsDetailPage = () => {
                         className="group block"
                       >
                         <div className="flex gap-4 hover:bg-gray-50 p-2 rounded-lg transition-colors">
-                          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                          <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 p-1">
                             <img
                               src={news.image}
                               alt={news.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                               onError={(e) => {
                                 e.currentTarget.src =
                                   'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23f0f0f0" width="100" height="100"/%3E%3C/svg%3E';

@@ -11,6 +11,32 @@ export interface User {
   isActive: boolean;
 }
 
+export interface EmployeeAdmin {
+  employeeID: number;
+  userID: number;
+  userName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  employeeType: number;
+  employeeTypeName: string;
+  createdAt: string;
+}
+
+export interface CreateEmployeeRequest {
+  userName: string;
+  email: string;
+  password: string;
+  employeeType: number;
+}
+
+export interface UpdateEmployeeRequest {
+  userName: string;
+  email: string;
+  employeeType: number;
+  isActive: boolean;
+}
+
 // Product from backend
 export interface Product {
   productID: number;
@@ -129,11 +155,10 @@ export interface UpdateCartItemRequest {
 
 // Enums
 export enum OrderStatus {
-  NEW = 'NEW',
-  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  CREATED = 'CREATED',
   APPROVED = 'APPROVED',
-  PROCESSING = 'PROCESSING',
   SHIPPING = 'SHIPPING',
+  DELIVERED = 'DELIVERED',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED'
 }
@@ -160,6 +185,15 @@ export interface Order {
   customer?: Customer;
   payment?: Payment;
   orderDetails?: OrderDetail[];
+}
+
+export interface PagedOrdersResponse {
+  items: Order[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
 }
 
 // Order Detail

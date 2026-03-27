@@ -6,6 +6,9 @@ import NewsSection from '../../components/NewsSection';
 import { getAllCategories, getCategoriesWithProducts } from '../../services/api';
 import type { Category, Product } from '../../types';
 import { newsArticles } from '../../data/newsData';
+import banner1 from '../../assets/images/banner-1.jpg';
+import banner2 from '../../assets/images/banner-2.jpg';
+import bannerText from '../../assets/images/banner-text.jpg';
 
 const HomePage = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -21,7 +24,17 @@ const HomePage = () => {
     {
       title: 'Màng cuốn giá tốt nhất thị trường Việt Nam',
       subtitle: 'Băng dính Việt Nam',
-      image: '/assets/images/banner-text.png',
+      image: banner1,
+    },
+    {
+      title: 'Giải pháp đóng gói bền chắc cho doanh nghiệp',
+      subtitle: 'Đa dạng kích thước và chất liệu',
+      image: banner2,
+    },
+    {
+      title: 'Màng cuốn giá tốt nhất thị trường Việt Nam',
+      subtitle: 'Băng dính Việt Nam',
+      image: bannerText,
     },
   ];
 
@@ -61,8 +74,19 @@ const HomePage = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (slides.length <= 1) return;
+
+    const timer = window.setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
+
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  const goToSlide = (index: number) => setCurrentSlide(index);
 
   const filteredProducts = selectedCategoryID === null
     ? allProducts
@@ -80,6 +104,7 @@ const HomePage = () => {
         slides={slides}
         onPrevSlide={prevSlide}
         onNextSlide={nextSlide}
+        onGoToSlide={goToSlide}
       />
 
       {/* Main Content */}

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalesManagementAPI.Data;
 
@@ -11,9 +12,11 @@ using SalesManagementAPI.Data;
 namespace SalesManagementAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321095051_DropPurchaseOrders")]
+    partial class DropPurchaseOrders
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,40 +128,9 @@ namespace SalesManagementAPI.Migrations
 
                     b.HasKey("CustomerID");
 
-                    b.HasIndex("UserID")
-                        .IsUnique();
+                    b.HasIndex("UserID");
 
                     b.ToTable("Customers");
-                });
-
-            modelBuilder.Entity("SalesManagementAPI.Models.Employee", b =>
-                {
-                    b.Property<int>("EmployeeID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeID"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("EmployeeType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("UserID")
-                        .HasColumnType("int");
-
-                    b.HasKey("EmployeeID");
-
-                    b.HasIndex("UserID")
-                        .IsUnique();
-
-                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("SalesManagementAPI.Models.Invoice", b =>
@@ -390,6 +362,41 @@ namespace SalesManagementAPI.Migrations
                     b.ToTable("Settings");
                 });
 
+            modelBuilder.Entity("SalesManagementAPI.Models.Supplier", b =>
+                {
+                    b.Property<int>("SupplierID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("SupplierID");
+
+                    b.ToTable("Suppliers");
+                });
+
             modelBuilder.Entity("SalesManagementAPI.Models.User", b =>
                 {
                     b.Property<int>("UserID")
@@ -458,19 +465,8 @@ namespace SalesManagementAPI.Migrations
             modelBuilder.Entity("SalesManagementAPI.Models.Customer", b =>
                 {
                     b.HasOne("SalesManagementAPI.Models.User", "User")
-                        .WithOne("Customer")
-                        .HasForeignKey("SalesManagementAPI.Models.Customer", "UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SalesManagementAPI.Models.Employee", b =>
-                {
-                    b.HasOne("SalesManagementAPI.Models.User", "User")
-                        .WithOne("Employee")
-                        .HasForeignKey("SalesManagementAPI.Models.Employee", "UserID")
+                        .WithMany("Customers")
+                        .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -596,9 +592,7 @@ namespace SalesManagementAPI.Migrations
 
             modelBuilder.Entity("SalesManagementAPI.Models.User", b =>
                 {
-                    b.Navigation("Customer");
-
-                    b.Navigation("Employee");
+                    b.Navigation("Customers");
 
                     b.Navigation("Invoices");
                 });

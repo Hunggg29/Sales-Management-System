@@ -26,30 +26,28 @@ const SalesStaffLayout = ({ children, title }: SalesStaffLayoutProps) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const connectionRef = useRef<signalR.HubConnection | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const notificationDropdownRef = useRef<HTMLDivElement>(null);
 
   // Setup SignalR for notifications
+  // Bước 1: Xin quyền thông báo trình duyệt (tách riêng khỏi SignalR)
   useEffect(() => {
-    // Check notification permission
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-      
-      // Auto request permission after 2 seconds
-      if (Notification.permission === 'default') {
-        const timer = setTimeout(async () => {
-          const permission = await Notification.requestPermission();
-          setNotificationPermission(permission);
-          if (permission === 'granted') {
-            toast.success('Đã bật thông báo đơn hàng mới');
-          }
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
-    }
+    if (!('Notification' in window)) return;
 
+    if (Notification.permission === 'default') {
+      const timer = setTimeout(async () => {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          toast.success('Đã bật thông báo đơn hàng mới');
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Bước 2: Khởi tạo SignalR (luôn chạy, không phụ thuộc vào quyền thông báo)
+  useEffect(() => {
     // Create notification sound
     audioRef.current = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCaY7vLTgjMGHm7A7+OZRSQGY63k8KeJZg==');
 
@@ -96,8 +94,8 @@ const SalesStaffLayout = ({ children, title }: SalesStaffLayoutProps) => {
         }
       );
 
-      // Show browser notification
-      if (notificationPermission === 'granted' && 'Notification' in window) {
+      // Show browser notification — dùng Notification.permission trực tiếp để tránh stale closure
+      if ('Notification' in window && Notification.permission === 'granted') {
         new Notification('🎉 Đơn hàng mới!', {
           body: `${data.message}\nGiá trị: ${data.totalAmount?.toLocaleString('vi-VN')}₫`,
           icon: '/logo.png',
@@ -107,7 +105,10 @@ const SalesStaffLayout = ({ children, title }: SalesStaffLayoutProps) => {
       }
     });
 
-    startConnection(connection);
+    startConnection(connection).then(ok => {
+      if (ok) console.log('✅ SignalR connected (Staff)');
+      else console.warn('⚠️ SignalR failed to connect (Staff)');
+    });
 
     // Cleanup on unmount
     return () => {
@@ -115,7 +116,7 @@ const SalesStaffLayout = ({ children, title }: SalesStaffLayoutProps) => {
         stopConnection(connectionRef.current);
       }
     };
-  }, [notificationPermission]);
+  }, []);
 
   // Click outside to close dropdown
   useEffect(() => {

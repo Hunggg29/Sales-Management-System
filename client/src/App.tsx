@@ -34,6 +34,7 @@ import {
   AdminReportsPage,
   AdminPaymentsPage,
   AdminSettingsPage,
+  AdminEmployeesPage,
 } from './pages/admin';
 
 // Sales Staff Pages
@@ -59,6 +60,7 @@ function App() {
           <Route path="/admin/reports" element={<AdminReportsPage />} />
           <Route path="/admin/payments" element={<AdminPaymentsPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
+          <Route path="/admin/employees" element={<AdminEmployeesPage />} />
 
           {/* Sales Staff Routes - Không có Header/Footer */}
           <Route path="/staff/dashboard" element={<SalesStaffDashboard />} />

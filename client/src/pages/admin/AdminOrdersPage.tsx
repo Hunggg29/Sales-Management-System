@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { MdVisibility, MdCheck, MdClose, MdLocalShipping, MdCheckCircle } from 'react-icons/md';
+import { MdVisibility, MdCheck, MdClose, MdLocalShipping } from 'react-icons/md';
 import AdminLayout from '../../components/AdminLayout';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { Pagination } from '../../components/shared';
@@ -13,6 +13,7 @@ const AdminOrdersPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'needs-payment' | 'in-progress' | 'cancelled'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -53,8 +54,10 @@ const AdminOrdersPage = () => {
 
   const handleUpdateStatus = async (orderId: number, status: string) => {
     const statusLabelsLocal: Record<string, string> = {
-      'PENDING': 'Chờ duyệt',
+      'CREATED': 'Mới tạo',
       'APPROVED': 'Đã duyệt',
+      'SHIPPING': 'Đang giao',
+      'DELIVERED': 'Đã giao',
       'COMPLETED': 'Hoàn thành',
       'CANCELLED': 'Đã hủy',
     };
@@ -63,9 +66,9 @@ const AdminOrdersPage = () => {
     let dialogType: 'warning' | 'danger' | 'info' | 'success' = 'warning';
     if (status === 'CANCELLED') {
       dialogType = 'danger';
-    } else if (status === 'PENDING') {
+    } else if (status === 'CREATED') {
       dialogType = 'info';
-    } else if (status === 'APPROVED' || status === 'COMPLETED') {
+    } else if (status === 'APPROVED' || status === 'SHIPPING' || status === 'DELIVERED' || status === 'COMPLETED') {
       dialogType = 'success';
     }
 
@@ -94,15 +97,19 @@ const AdminOrdersPage = () => {
   };
 
   const statusColors: Record<string, string> = {
-    'PENDING': 'bg-yellow-100 text-yellow-800',
+    'CREATED': 'bg-yellow-100 text-yellow-800',
     'APPROVED': 'bg-blue-100 text-blue-800',
+    'SHIPPING': 'bg-purple-100 text-purple-800',
+    'DELIVERED': 'bg-indigo-100 text-indigo-800',
     'COMPLETED': 'bg-green-600 text-white',
     'CANCELLED': 'bg-red-100 text-red-800',
   };
 
   const statusLabels: Record<string, string> = {
-    'PENDING': 'Chờ duyệt',
+    'CREATED': 'Mới tạo',
     'APPROVED': 'Đã duyệt',
+    'SHIPPING': 'Đang giao',
+    'DELIVERED': 'Đã giao',
     'COMPLETED': 'Hoàn thành',
     'CANCELLED': 'Đã hủy',
   };
@@ -122,10 +129,20 @@ const AdminOrdersPage = () => {
   };
 
   const filteredOrders = orders.filter(order => {
+    const paymentStatus = order.payment?.paymentStatus || 'UNPAID';
+    const isNeedsPayment = order.status === 'DELIVERED' && paymentStatus === 'UNPAID';
+    const isInProgress = ['CREATED', 'APPROVED', 'SHIPPING'].includes(order.status);
+
     const matchesSearch = order.customer?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.orderID.toString().includes(searchTerm);
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesQuickFilter =
+      quickFilter === 'all' ||
+      (quickFilter === 'needs-payment' && isNeedsPayment) ||
+      (quickFilter === 'in-progress' && isInProgress) ||
+      (quickFilter === 'cancelled' && order.status === 'CANCELLED');
+
+    return matchesSearch && matchesStatus && matchesQuickFilter;
   });
 
   // Pagination logic
@@ -136,13 +153,19 @@ const AdminOrdersPage = () => {
   // Reset to page 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, quickFilter]);
+
+  const needsPaymentCount = orders.filter(
+    (order) => order.status === 'DELIVERED' && (order.payment?.paymentStatus || 'UNPAID') === 'UNPAID'
+  ).length;
+  const inProgressCount = orders.filter((order) => ['CREATED', 'APPROVED', 'SHIPPING'].includes(order.status)).length;
+  const cancelledCount = orders.filter((order) => order.status === 'CANCELLED').length;
 
   return (
     <AdminLayout title="Quản lý đơn hàng">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         {/* Search Bar and Filters */}
-        <div className="p-4 border-b border-gray-100 space-y-4">
+        <div className="sticky top-3 z-20 p-4 border-b border-gray-100 space-y-4 bg-white/95 backdrop-blur-sm">
           <div className="relative max-w-md">
             <input
               type="text"
@@ -166,6 +189,41 @@ const AdminOrdersPage = () => {
             </svg>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setQuickFilter('all')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                quickFilter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Tất cả ({orders.length})
+            </button>
+            <button
+              onClick={() => setQuickFilter('needs-payment')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                quickFilter === 'needs-payment' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+              }`}
+            >
+              Cần thu tiền ({needsPaymentCount})
+            </button>
+            <button
+              onClick={() => setQuickFilter('in-progress')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                quickFilter === 'in-progress' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+              }`}
+            >
+              Đang xử lý ({inProgressCount})
+            </button>
+            <button
+              onClick={() => setQuickFilter('cancelled')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                quickFilter === 'cancelled' ? 'bg-red-600 text-white' : 'bg-red-100 text-red-800 hover:bg-red-200'
+              }`}
+            >
+              Đã hủy ({cancelledCount})
+            </button>
+          </div>
+
           {/* Status Filter Dropdown */}
           <div className="flex items-center gap-3">
             <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
@@ -178,8 +236,10 @@ const AdminOrdersPage = () => {
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors min-w-[200px]"
             >
               <option value="all">Tất cả ({orders.length})</option>
-              <option value="PENDING">Chờ duyệt ({orders.filter(o => o.status === 'PENDING').length})</option>
+              <option value="CREATED">Mới tạo ({orders.filter(o => o.status === 'CREATED').length})</option>
               <option value="APPROVED">Đã duyệt ({orders.filter(o => o.status === 'APPROVED').length})</option>
+              <option value="SHIPPING">Đang giao ({orders.filter(o => o.status === 'SHIPPING').length})</option>
+              <option value="DELIVERED">Đã giao ({orders.filter(o => o.status === 'DELIVERED').length})</option>
               <option value="COMPLETED">Hoàn thành ({orders.filter(o => o.status === 'COMPLETED').length})</option>
               <option value="CANCELLED">Đã hủy ({orders.filter(o => o.status === 'CANCELLED').length})</option>
             </select>
@@ -199,6 +259,7 @@ const AdminOrdersPage = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Khách hàng</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Ngày đặt</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Tổng tiền</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Thanh toán</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">Trạng thái</th>
                   <th className="px-6 py-4 text-right text-sm font-semibold text-gray-600">Hành động</th>
                 </tr>
@@ -206,13 +267,19 @@ const AdminOrdersPage = () => {
               <tbody className="divide-y divide-gray-100">
                 {paginatedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                       Không tìm thấy đơn hàng nào phù hợp
                     </td>
                   </tr>
                 ) : (
-                  paginatedOrders.map((order) => (
-                    <tr key={order.orderID} className="hover:bg-gray-50 transition-colors">
+                  paginatedOrders.map((order) => {
+                    const isNeedsPayment = order.status === 'DELIVERED' && (order.payment?.paymentStatus || 'UNPAID') === 'UNPAID';
+
+                    return (
+                    <tr
+                      key={order.orderID}
+                      className={`transition-colors ${isNeedsPayment ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50'}`}
+                    >
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         #{order.orderID}
                       </td>
@@ -224,6 +291,16 @@ const AdminOrdersPage = () => {
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-red-600">
                         {order.totalAmount.toLocaleString('vi-VN')}₫
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${paymentStatusColors[order.payment?.paymentStatus || 'UNPAID']}`}>
+                            {paymentStatusLabels[order.payment?.paymentStatus || 'UNPAID']}
+                          </span>
+                          {isNeedsPayment && (
+                            <div className="text-[11px] font-semibold text-amber-700">Ưu tiên xử lý công nợ</div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}>
@@ -239,8 +316,8 @@ const AdminOrdersPage = () => {
                           <MdVisibility className="w-5 h-5" />
                         </button>
                         
-                        {/* PENDING -> APPROVED / CANCELLED */}
-                        {order.status === 'PENDING' && (
+                        {/* CREATED -> APPROVED / CANCELLED */}
+                        {order.status === 'CREATED' && (
                           <>
                             <button
                               onClick={() => handleUpdateStatus(order.orderID, 'APPROVED')}
@@ -259,30 +336,30 @@ const AdminOrdersPage = () => {
                           </>
                         )}
                         
-                        {/* APPROVED -> COMPLETED */}
+                        {/* APPROVED -> SHIPPING */}
                         {order.status === 'APPROVED' && (
                           <button
-                            onClick={() => handleUpdateStatus(order.orderID, 'COMPLETED')}
-                            className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors"
-                            title="Hoàn thành đơn hàng"
+                            onClick={() => handleUpdateStatus(order.orderID, 'SHIPPING')}
+                            className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                            title="Bắt đầu giao hàng"
                           >
-                            <MdCheck className="w-5 h-5" />
+                            <MdLocalShipping className="w-5 h-5" />
                           </button>
                         )}
                         
-                        {/* PROCESSING -> SHIPPING */}
-                        {order.status === 'PROCESSING' && (
+                        {/* SHIPPING -> DELIVERED */}
+                        {order.status === 'SHIPPING' && (
                           <button
-                            onClick={() => handleUpdateStatus(order.orderID, 'COMPLETED')}
+                            onClick={() => handleUpdateStatus(order.orderID, 'DELIVERED')}
                             className="text-green-600 hover:bg-green-50 p-2 rounded-lg transition-colors"
-                            title="Hoàn thành đơn hàng"
+                            title="Xác nhận đã giao"
                           >
                             <MdCheck className="w-5 h-5" />
                           </button>
                         )}
                       </td>
                     </tr>
-                  )))}
+                  )}))}
               </tbody>
             </table>
           </div>
@@ -382,7 +459,7 @@ const AdminOrdersPage = () => {
             </div>
 
             <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
-              {selectedOrder.status === 'PENDING' ? (
+              {selectedOrder.status === 'CREATED' ? (
                 <>
                   <button
                     onClick={() => {
@@ -406,12 +483,22 @@ const AdminOrdersPage = () => {
               ) : selectedOrder.status === 'APPROVED' ? (
                 <button
                   onClick={() => {
-                    handleUpdateStatus(selectedOrder.orderID, 'COMPLETED');
+                    handleUpdateStatus(selectedOrder.orderID, 'SHIPPING');
+                    setSelectedOrder(null);
+                  }}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                >
+                  Chuyển sang đang giao
+                </button>
+              ) : selectedOrder.status === 'SHIPPING' ? (
+                <button
+                  onClick={() => {
+                    handleUpdateStatus(selectedOrder.orderID, 'DELIVERED');
                     setSelectedOrder(null);
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
                 >
-                  Hoàn thành đơn hàng
+                  Xác nhận đã giao
                 </button>
               ) : (
                 <div className="text-gray-500 italic">Đơn hàng {statusLabels[selectedOrder.status]?.toLowerCase()}</div>

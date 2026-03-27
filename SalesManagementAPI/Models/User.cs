@@ -11,7 +11,8 @@ namespace SalesManagementAPI.Models
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; }
 
-        public ICollection<Customer>? Customers { get; set; }
+        public Customer? Customer { get; set; }
         public ICollection<Invoice>? Invoices { get; set; }
+        public Employee? Employee { get; set; }
     }
 }

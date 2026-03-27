@@ -46,7 +46,7 @@ const AdminPaymentsPage = () => {
       const orders = await getAllOrders();
       
       // Các trạng thái đơn hàng đã được admin/staff xác nhận
-      const confirmedStatuses = ['APPROVED', 'PROCESSING', 'SHIPPING', 'COMPLETED'];
+      const confirmedStatuses = ['APPROVED', 'SHIPPING', 'DELIVERED', 'COMPLETED'];
       
       // Extract payment data from orders - chỉ lấy những đơn đã được xác nhận
       const paymentData: Payment[] = orders

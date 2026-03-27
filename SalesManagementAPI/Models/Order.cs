@@ -3,11 +3,12 @@ namespace SalesManagementAPI.Models
 {
     public enum OrderStatus
     {
-        CREATED,
-        PENDING,
-        APPROVED,
-        COMPLETED,
-        CANCELLED
+        CREATED = 0,
+        APPROVED = 2,
+        COMPLETED = 3,
+        CANCELLED = 4,
+        SHIPPING = 5,
+        DELIVERED = 6
     }
 
     public class Order
@@ -17,7 +18,7 @@ namespace SalesManagementAPI.Models
         public int? StaffID { get; set; }
         public DateTime OrderDate { get; set; }
         public decimal TotalAmount { get; set; }
-        public OrderStatus Status { get; set; } = OrderStatus.PENDING;
+        public OrderStatus Status { get; set; } = OrderStatus.CREATED;
 
         public Customer? Customer { get; set; }
         public ICollection<OrderDetail>? OrderDetails { get; set; }

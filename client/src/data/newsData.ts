@@ -1,4 +1,10 @@
 import type { NewsArticle } from '../types';
+import bangDinhVaiImg from '../assets/images/bang-dinh-vai.jpg';
+import bangDinhInChuImg from '../assets/images/bang-dinh-in-chu.jpg';
+import cauTaoSanPhamImg from '../assets/images/cau-tao-san-pham.jpg';
+import mangPEImg from '../assets/images/mang-PE.jpg';
+import xopHoiImg from '../assets/images/xop-hoi.jpg';
+import soSanhOppKraftImg from '../assets/images/so-sanh-bang-dinh-OPP-va-bang-dinh-KRAFT.jpg';
 
 export const newsArticles: NewsArticle[] = [
   {
@@ -6,7 +12,7 @@ export const newsArticles: NewsArticle[] = [
     title: 'Giới thiệu sản phẩm Băng dính vải chất lượng cao',
     date: '02/01/2023',
     views: 58,
-    image: '/assets/images/news-1.png',
+    image: bangDinhVaiImg,
     category: 'Sản phẩm',
     author: 'Admin',
     excerpt: 'Băng dính vải là một trong những sản phẩm chất lượng cao được ưa chuộng nhất hiện nay trong lĩnh vực đóng gói và bảo quản hàng hóa.',
@@ -42,7 +48,7 @@ export const newsArticles: NewsArticle[] = [
     title: 'Quy trình đặt mua băng dính in chữ',
     date: '02/01/2023',
     views: 49,
-    image: '/assets/images/news-2.png',
+    image: bangDinhInChuImg,
     category: 'Hướng dẫn',
     author: 'Admin',
     excerpt: 'Băng dính in chữ là giải pháp quảng bá thương hiệu hiệu quả và tiết kiệm chi phí. Tìm hiểu quy trình đặt mua đơn giản và nhanh chóng.',
@@ -110,7 +116,7 @@ export const newsArticles: NewsArticle[] = [
     title: 'Cấu tạo sản phẩm băng dính/băng keo',
     date: '02/01/2023',
     views: 55,
-    image: '/assets/images/news-3.png',
+    image: cauTaoSanPhamImg,
     category: 'Kiến thức',
     author: 'Admin',
     excerpt: 'Tìm hiểu về cấu tạo của băng dính để lựa chọn sản phẩm phù hợp với nhu cầu sử dụng của bạn.',
@@ -198,7 +204,7 @@ export const newsArticles: NewsArticle[] = [
     title: 'Màng PE - Giải pháp bao bì hiện đại',
     date: '02/01/2023',
     views: 62,
-    image: '/assets/images/news-4.png',
+    image: mangPEImg,
     category: 'Sản phẩm',
     author: 'Admin',
     excerpt: 'Màng PE là giải pháp bao bì hiện đại, an toàn và tiết kiệm chi phí. Khám phá ưu điểm và ứng dụng của màng PE trong ngành công nghiệp.',
@@ -352,7 +358,7 @@ export const newsArticles: NewsArticle[] = [
     title: 'Xốp hơi - Giải pháp bảo vệ hàng hóa tối ưu',
     date: '15/03/2023',
     views: 73,
-    image: '/assets/images/news-1.png',
+    image: xopHoiImg,
     category: 'Sản phẩm',
     author: 'Admin',
     excerpt: 'Xốp hơi là vật liệu bảo vệ hàng hóa hiệu quả, được ưa chuộng trong vận chuyển và đóng gói. Tìm hiểu ưu điểm và cách sử dụng xốp hơi đúng cách.',
@@ -498,7 +504,7 @@ export const newsArticles: NewsArticle[] = [
     title: 'So sánh băng dính OPP và băng dính giấy kraft',
     date: '20/04/2023',
     views: 65,
-    image: '/assets/images/news-2.png',
+    image: soSanhOppKraftImg,
     category: 'Kiến thức',
     author: 'Admin',
     excerpt: 'Băng dính OPP và băng dính giấy kraft là hai loại băng dính phổ biến nhất. Cùng tìm hiểu sự khác biệt và ứng dụng của từng loại để lựa chọn phù hợp.',

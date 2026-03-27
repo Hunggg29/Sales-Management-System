@@ -16,6 +16,19 @@ import type {
 // Base URL of your backend API
 const API_BASE_URL = 'https://localhost:7078/api';
 
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('authToken');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
 /**
  * Helper function to handle fetch responses
  * Checks if response is ok, then returns JSON data
@@ -82,6 +95,57 @@ export async function register(
   });
 
   return handleResponse<RegisterResponse>(response);
+}
+
+/**
+ * EMPLOYEE MANAGEMENT ENDPOINTS (Admin)
+ */
+
+export async function getAllEmployees(): Promise<import('../types').EmployeeAdmin[]> {
+  const response = await fetch(`${API_BASE_URL}/Employees`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<import('../types').EmployeeAdmin[]>(response);
+}
+
+export async function createEmployee(
+  data: import('../types').CreateEmployeeRequest
+): Promise<import('../types').EmployeeAdmin> {
+  const response = await fetch(`${API_BASE_URL}/Employees`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<import('../types').EmployeeAdmin>(response);
+}
+
+export async function updateEmployee(
+  employeeId: number,
+  data: import('../types').UpdateEmployeeRequest
+): Promise<import('../types').EmployeeAdmin> {
+  const response = await fetch(`${API_BASE_URL}/Employees/${employeeId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  return handleResponse<import('../types').EmployeeAdmin>(response);
+}
+
+export async function updateEmployeeStatus(
+  employeeId: number,
+  isActive: boolean
+): Promise<import('../types').EmployeeAdmin> {
+  const response = await fetch(`${API_BASE_URL}/Employees/${employeeId}/status`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ isActive }),
+  });
+
+  return handleResponse<import('../types').EmployeeAdmin>(response);
 }
 
 /**
@@ -495,6 +559,21 @@ export async function getOrdersByUserId(userId: number): Promise<import('../type
   });
 
   return handleResponse<import('../types').Order[]>(response);
+}
+
+export async function getOrdersByUserIdPaged(
+  userId: number,
+  page: number = 1,
+  pageSize: number = 10
+): Promise<import('../types').PagedOrdersResponse> {
+  const response = await fetch(`${API_BASE_URL}/Orders/user/${userId}?page=${page}&pageSize=${pageSize}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse<import('../types').PagedOrdersResponse>(response);
 }
 
 /**

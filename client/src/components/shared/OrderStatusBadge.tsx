@@ -6,18 +6,27 @@ interface OrderStatusBadgeProps {
 
 const OrderStatusBadge = ({ status }: OrderStatusBadgeProps) => {
   const getStatusConfig = (status: string) => {
-    const upperStatus = status.toUpperCase();
+    const upperStatus = (status || '').toUpperCase();
     
     switch (upperStatus) {
+      case 'CREATED':
       case 'PENDING_APPROVAL':
+      case 'PENDING':
         return {
-          text: 'Chờ duyệt',
+          text: 'Đơn mới tạo',
           classes: 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 shadow-sm',
           icon: MdPending
         };
-      case 'APPROVED':
+      case 'DELIVERED':
         return {
-          text: 'Đã duyệt',
+          text: 'Đã giao hàng',
+          classes: 'bg-gradient-to-r from-cyan-100 to-sky-100 text-cyan-800 border-2 border-cyan-300 shadow-sm',
+          icon: MdCheckCircle
+        };
+      case 'APPROVED':
+      case 'CONFIRMED':
+        return {
+          text: 'Đã xác nhận',
           classes: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-2 border-green-300 shadow-sm',
           icon: MdThumbUp
         };
@@ -45,28 +54,9 @@ const OrderStatusBadge = ({ status }: OrderStatusBadgeProps) => {
           classes: 'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-2 border-red-300 shadow-sm',
           icon: MdCancel
         };
-      // Legacy status support
-      case 'PENDING':
-        return {
-          text: 'Chờ duyệt',
-          classes: 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border-2 border-yellow-300 shadow-sm',
-          icon: MdPending
-        };
-      case 'CONFIRMED':
-        return {
-          text: 'Đã duyệt',
-          classes: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-2 border-green-300 shadow-sm',
-          icon: MdThumbUp
-        };
-      case 'PROCESSING':
-        return {
-          text: 'Đang vận chuyển',
-          classes: 'bg-gradient-to-r from-blue-100 to-sky-100 text-blue-800 border-2 border-blue-300 shadow-sm',
-          icon: MdLocalShipping
-        };
       default:
         return {
-          text: status,
+          text: 'Trạng thái không xác định',
           classes: 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-2 border-gray-300 shadow-sm',
           icon: MdPending
         };

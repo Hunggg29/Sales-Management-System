@@ -31,7 +31,7 @@ const SalesStaffDashboard = () => {
       const unpaid = orders.filter(order => 
         order.payment && 
         order.payment.paymentStatus.toUpperCase() === 'UNPAID' &&
-        ['APPROVED', 'PROCESSING', 'SHIPPING', 'COMPLETED'].includes(order.status.toUpperCase())
+        ['APPROVED', 'SHIPPING', 'DELIVERED'].includes(order.status.toUpperCase())
       );
       setUnpaidOrders(unpaid);
 
@@ -42,7 +42,7 @@ const SalesStaffDashboard = () => {
       setStats({
         totalCustomers: customers.length,
         totalOrders: orders.length,
-        pendingOrders: orders.filter(o => ['PENDING', 'APPROVED'].includes(o.status)).length,
+        pendingOrders: orders.filter(o => ['CREATED', 'APPROVED', 'SHIPPING'].includes(o.status)).length,
         completedOrders: orders.filter(o => o.status === 'COMPLETED').length,
       });
     } catch (error) {
@@ -115,16 +115,11 @@ const SalesStaffDashboard = () => {
       textColor: 'text-yellow-600',
       isNumber: true,
     },
-    {
-      title: 'Công nợ phải thu',
-      value: totalDebt,
-      icon: MdWarning,
-      color: 'bg-red-500',
-      bgLight: 'bg-red-50',
-      textColor: 'text-red-600',
-      isNumber: false,
-    },
   ];
+
+  const debtCard = {
+    receivable: totalDebt,
+  };
 
   if (isLoading) {
     return (
@@ -166,6 +161,26 @@ const SalesStaffDashboard = () => {
               </div>
             );
           })}
+          {/* Combined debt card */}
+          <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-orange-50">
+                <MdWarning className="w-6 h-6 text-orange-500" />
+              </div>
+            </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-3">Công nợ</h3>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Phải thu</span>
+                <span className="text-base font-bold text-red-600">{formatCurrency(debtCard.receivable)}</span>
+              </div>
+              <div className="h-px bg-gray-100" />
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Đơn chưa thanh toán</span>
+                <span className="text-base font-bold text-blue-600">{formatNumber(unpaidOrders.length)} đơn</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Actions */}
@@ -205,106 +220,84 @@ const SalesStaffDashboard = () => {
           </div>
         </div>
 
-        {/* Công nợ phải thu */}
+        {/* Công nợ Section */}
         {unpaidOrders.length > 0 && (
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl shadow-md p-6 border-2 border-yellow-300">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="bg-yellow-500 p-3 rounded-lg">
-                <MdWarning className="w-6 h-6 text-white" />
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="bg-orange-500 p-3 rounded-lg">
+                  <MdWarning className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Tổng hợp công nợ</h3>
+                  <p className="text-sm text-gray-600">Công nợ phải thu từ khách hàng</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-bold text-gray-800">Công nợ phải thu</h3>
-                <p className="text-sm text-gray-600">Các đơn hàng đã duyệt nhưng chưa thanh toán</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                  <p className="text-sm text-gray-500 mb-1">Phải thu (từ khách hàng)</p>
+                  <p className="text-xl font-bold text-red-600">{formatCurrency(totalDebt)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{formatNumber(unpaidOrders.length)} đơn · {formatNumber(debtList.length)} khách hàng</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                  <p className="text-sm text-gray-500 mb-1">Giá trị trung bình / đơn</p>
+                  <p className="text-xl font-bold text-blue-600">
+                    {formatCurrency(unpaidOrders.length > 0 ? totalDebt / unpaidOrders.length : 0)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">Dùng để ưu tiên nhắc công nợ</p>
+                </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Tổng công nợ</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(totalDebt)}</p>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Số đơn chưa thanh toán</p>
-                <p className="text-2xl font-bold text-orange-600">{formatNumber(unpaidOrders.length)}</p>
-              </div>
-              <div className="bg-white rounded-lg p-4 shadow-sm">
-                <p className="text-sm text-gray-600 mb-1">Khách hàng còn nợ</p>
-                <p className="text-2xl font-bold text-yellow-600">{formatNumber(debtList.length)}</p>
-              </div>
-            </div>
-
-            {/* Danh sách khách hàng còn nợ */}
-            {debtList.length > 0 && (
-              <div className="bg-white rounded-lg p-6 shadow-sm">
-                <h4 className="text-lg font-bold text-gray-800 mb-4">Danh sách khách hàng còn nợ</h4>
+            {/* Tab content */}
+            <div className="p-6">
+              {debtList.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          #
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Khách hàng
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Số đơn hàng
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tổng nợ
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Chi tiết
-                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Khách hàng</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số đơn hàng</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tổng nợ</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chi tiết</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {debtList.map((debt, index) => (
                         <tr key={debt.customerId} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 font-bold rounded-full">
-                              {index + 1}
-                            </div>
+                            <div className="flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 font-bold rounded-full">{index + 1}</div>
                           </td>
                           <td className="px-6 py-4">
                             <div className="font-medium text-gray-800">{debt.customerName}</div>
                             <div className="text-sm text-gray-500">ID: {debt.customerId}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-                              {debt.orderCount} đơn
-                            </span>
+                            <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">{debt.orderCount} đơn</span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="text-red-600 font-bold text-lg">{formatCurrency(debt.totalDebt)}</span>
                           </td>
                           <td className="px-6 py-4">
                             <details className="cursor-pointer">
-                              <summary className="text-blue-600 hover:text-blue-800 font-medium">
-                                Xem chi tiết ({debt.orders.length} đơn)
-                              </summary>
+                              <summary className="text-blue-600 hover:text-blue-800 font-medium">Xem chi tiết ({debt.orders.length} đơn)</summary>
                               <div className="mt-2 space-y-2 ml-4">
                                 {debt.orders.map(order => (
                                   <div key={order.orderID} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
                                     <div>
                                       <span className="font-medium">Đơn #{order.orderID}</span>
-                                      <span className="text-gray-500 ml-2">
-                                        {new Date(order.orderDate).toLocaleDateString('vi-VN')}
-                                      </span>
+                                      <span className="text-gray-500 ml-2">{new Date(order.orderDate).toLocaleDateString('vi-VN')}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <span className={`px-2 py-1 text-xs rounded-full ${
                                         order.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                                        order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
                                         order.status === 'SHIPPING' ? 'bg-purple-100 text-purple-800' :
+                                        order.status === 'DELIVERED' ? 'bg-indigo-100 text-indigo-800' :
                                         order.status === 'COMPLETED' ? 'bg-green-600 text-white' :
                                         'bg-gray-100 text-gray-800'
-                                      }`}>
-                                        {order.status}
-                                      </span>
-                                      <span className="font-semibold text-red-600">
-                                        {formatCurrency(order.totalAmount)}
-                                      </span>
+                                      }`}>{order.status}</span>
+                                      <span className="font-semibold text-red-600">{formatCurrency(order.totalAmount)}</span>
                                     </div>
                                   </div>
                                 ))}
@@ -316,8 +309,13 @@ const SalesStaffDashboard = () => {
                     </tbody>
                   </table>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-12">
+                  <MdWarning className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">Không có công nợ phải thu</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

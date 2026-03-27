@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SalesManagementAPI.Data;
 
@@ -11,9 +12,11 @@ using SalesManagementAPI.Data;
 namespace SalesManagementAPI.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260311025024_AddUnitToPurchaseOrderDetail")]
+    partial class AddUnitToPurchaseOrderDetail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -125,40 +128,9 @@ namespace SalesManagementAPI.Migrations
 
                     b.HasKey("CustomerID");
 
-                    b.HasIndex("UserID")
-                        .IsUnique();
+                    b.HasIndex("UserID");
 
                     b.ToTable("Customers");
-                });
-
-            modelBuilder.Entity("SalesManagementAPI.Models.Employee", b =>
-                {
-                    b.Property<int>("EmployeeID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeID"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("EmployeeType")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("UserID")
-                        .HasColumnType("int");
-
-                    b.HasKey("EmployeeID");
-
-                    b.HasIndex("UserID")
-                        .IsUnique();
-
-                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("SalesManagementAPI.Models.Invoice", b =>
@@ -362,6 +334,76 @@ namespace SalesManagementAPI.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("SalesManagementAPI.Models.PurchaseOrder", b =>
+                {
+                    b.Property<int>("PurchaseOrderID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderID"));
+
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StaffID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("PurchaseOrderID");
+
+                    b.HasIndex("StaffID");
+
+                    b.HasIndex("SupplierID");
+
+                    b.ToTable("PurchaseOrders");
+                });
+
+            modelBuilder.Entity("SalesManagementAPI.Models.PurchaseOrderDetail", b =>
+                {
+                    b.Property<int>("PurchaseOrderDetailID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderDetailID"));
+
+                    b.Property<string>("MaterialName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PurchaseOrderID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("UnitCostPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("PurchaseOrderDetailID");
+
+                    b.HasIndex("PurchaseOrderID");
+
+                    b.ToTable("PurchaseOrderDetails");
+                });
+
             modelBuilder.Entity("SalesManagementAPI.Models.Setting", b =>
                 {
                     b.Property<int>("SettingID")
@@ -388,6 +430,41 @@ namespace SalesManagementAPI.Migrations
                     b.HasKey("SettingID");
 
                     b.ToTable("Settings");
+                });
+
+            modelBuilder.Entity("SalesManagementAPI.Models.Supplier", b =>
+                {
+                    b.Property<int>("SupplierID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierID"));
+
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContactName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("SupplierID");
+
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("SalesManagementAPI.Models.User", b =>
@@ -458,19 +535,8 @@ namespace SalesManagementAPI.Migrations
             modelBuilder.Entity("SalesManagementAPI.Models.Customer", b =>
                 {
                     b.HasOne("SalesManagementAPI.Models.User", "User")
-                        .WithOne("Customer")
-                        .HasForeignKey("SalesManagementAPI.Models.Customer", "UserID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SalesManagementAPI.Models.Employee", b =>
-                {
-                    b.HasOne("SalesManagementAPI.Models.User", "User")
-                        .WithOne("Employee")
-                        .HasForeignKey("SalesManagementAPI.Models.Employee", "UserID")
+                        .WithMany("Customers")
+                        .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -556,6 +622,36 @@ namespace SalesManagementAPI.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("SalesManagementAPI.Models.PurchaseOrder", b =>
+                {
+                    b.HasOne("SalesManagementAPI.Models.User", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SalesManagementAPI.Models.Supplier", "Supplier")
+                        .WithMany("PurchaseOrders")
+                        .HasForeignKey("SupplierID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("SalesManagementAPI.Models.PurchaseOrderDetail", b =>
+                {
+                    b.HasOne("SalesManagementAPI.Models.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("PurchaseOrderDetails")
+                        .HasForeignKey("PurchaseOrderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseOrder");
+                });
+
             modelBuilder.Entity("SalesManagementAPI.Models.Cart", b =>
                 {
                     b.Navigation("CartItems");
@@ -594,11 +690,19 @@ namespace SalesManagementAPI.Migrations
                     b.Navigation("OrderDetails");
                 });
 
+            modelBuilder.Entity("SalesManagementAPI.Models.PurchaseOrder", b =>
+                {
+                    b.Navigation("PurchaseOrderDetails");
+                });
+
+            modelBuilder.Entity("SalesManagementAPI.Models.Supplier", b =>
+                {
+                    b.Navigation("PurchaseOrders");
+                });
+
             modelBuilder.Entity("SalesManagementAPI.Models.User", b =>
                 {
-                    b.Navigation("Customer");
-
-                    b.Navigation("Employee");
+                    b.Navigation("Customers");
 
                     b.Navigation("Invoices");
                 });

@@ -22,6 +22,8 @@ namespace SalesManagementAPI.Data
         public DbSet<PaymentLog> PaymentLogs { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Setting> Settings { get; set; }
+        public DbSet<Employee> Employees { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +32,13 @@ namespace SalesManagementAPI.Data
             // Khóa chính phức hợp cho OrderDetail
             modelBuilder.Entity<OrderDetail>()
                 .HasKey(od => new { od.OrderID, od.ProductID });
+
+            // 1 - 1: User → Customer
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Customer)
+                .WithOne(c => c.User)
+                .HasForeignKey<Customer>(c => c.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // 1 - 1: Customer → Cart
             modelBuilder.Entity<Customer>()
@@ -65,6 +74,13 @@ namespace SalesManagementAPI.Data
                 .WithMany(u => u.Invoices)
                 .HasForeignKey(i => i.StaffID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // 1 - 1: User (Staff) → Employee
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Employee)
+                .WithOne(e => e.User)
+                .HasForeignKey<Employee>(e => e.UserID)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Payment>()
                 .HasMany(p => p.PaymentLogs)
@@ -128,6 +144,11 @@ namespace SalesManagementAPI.Data
                 .Property(i => i.Tax)
                 .HasColumnType("decimal(18,2)");
 
+            modelBuilder.Entity<Employee>()
+                .Property(e => e.EmployeeType)
+                .HasConversion<int>()
+                .HasDefaultValue(EmployeeType.Sales);
+
             // DateTime configurations
             modelBuilder.Entity<Cart>()
                 .Property(c => c.CreatedAt)
@@ -143,6 +164,10 @@ namespace SalesManagementAPI.Data
 
             modelBuilder.Entity<Invoice>()
                 .Property(i => i.IssueDate)
+                .HasColumnType("datetime2");
+
+            modelBuilder.Entity<Employee>()
+                .Property(e => e.CreatedAt)
                 .HasColumnType("datetime2");
 
 
