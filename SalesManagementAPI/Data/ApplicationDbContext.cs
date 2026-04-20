@@ -68,12 +68,12 @@ namespace SalesManagementAPI.Data
                 .HasForeignKey(i => i.OrderID)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 1 - N: User (Staff) → Invoices
+            // 1 - N: Employee (Staff) → Invoices
             modelBuilder.Entity<Invoice>()
                 .HasOne(i => i.Staff)
-                .WithMany(u => u.Invoices)
+                .WithMany(e => e.Invoices)
                 .HasForeignKey(i => i.StaffID)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
 
             // 1 - 1: User (Staff) → Employee
             modelBuilder.Entity<User>()
@@ -100,6 +100,13 @@ namespace SalesManagementAPI.Data
                 .HasMany(c => c.Orders)
                 .WithOne(o => o.Customer)
                 .HasForeignKey(o => o.CustomerID);
+
+            // 1 - N: Employee (Staff) → Orders
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Staff)
+                .WithMany(e => e.Orders)
+                .HasForeignKey(o => o.StaffID)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Category>()
                 .HasMany(c => c.Products)

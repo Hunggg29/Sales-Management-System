@@ -21,6 +21,7 @@ import {
   OrderSuccessPage,
   OrderHistoryPage,
   PaymentFailedPage,
+  ResetPasswordPage,
 } from './pages/client';
 import InvoicePage from './pages/client/InvoicePage';
 
@@ -89,6 +90,7 @@ function App() {
                   <Route path="/hoa-don/:orderId" element={<InvoicePage />} />
                   <Route path="/don-hang/failed" element={<PaymentFailedPage />} />
                   <Route path="/lich-su-don-hang" element={<OrderHistoryPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
                 </Routes>
               </main>
               <Footer />

@@ -25,8 +25,8 @@ namespace SalesManagementAPI.Controllers
             try
             {
                 // Log để debug
-                Console.WriteLine($"Creating order for userId: {userId}");
-                Console.WriteLine($"PaymentMethod: {createOrderDto.PaymentMethod}");
+                //Console.WriteLine($"Creating order for userId: {userId}");
+                //Console.WriteLine($"PaymentMethod: {createOrderDto.PaymentMethod}");
 
                 var order = await _orderService.CreateOrderFromCartAsync(userId, createOrderDto);
 

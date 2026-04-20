@@ -14,6 +14,6 @@ namespace SalesManagementAPI.Models
         public string CustomerAddress { get; set; } = null!;
 
         public Order? Order { get; set; }
-        public User? Staff { get; set; }
+        public Employee? Staff { get; set; }
     }
 }

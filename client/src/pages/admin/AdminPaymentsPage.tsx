@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { Pagination } from '../../components/shared';
 import { getAllOrders, confirmPayment } from '../../services/api';
+import type { User } from '../../types';
 
 interface Payment {
   paymentID: number;
@@ -154,7 +155,11 @@ const AdminPaymentsPage = () => {
     
     setConfirmingOrderId(orderId);
     try {
-      const result = await confirmPayment(orderId, 1, transactionCode);
+      const currentUserRaw = localStorage.getItem('user');
+      const currentUser: User | null = currentUserRaw ? JSON.parse(currentUserRaw) : null;
+      const employeeId = currentUser?.employeeID ?? 0;
+
+      const result = await confirmPayment(orderId, employeeId, transactionCode);
       console.log('Confirm payment result:', result);
       
       if (result && result.success) {

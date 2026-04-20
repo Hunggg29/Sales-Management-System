@@ -10,6 +10,8 @@ import type {
   LoginResponse,
   RegisterRequest,
   RegisterResponse,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
   Category,
 } from '../types';
 
@@ -95,6 +97,61 @@ export async function register(
   });
 
   return handleResponse<RegisterResponse>(response);
+}
+
+/**
+ * Login with Google OAuth token
+ * POST /api/Auth/oauth/google
+ *
+ * @param providerToken - Google ID token
+ * @param name - Optional display name from frontend
+ * @returns Promise with user data and JWT token
+ */
+export async function loginWithGoogle(
+  providerToken: string,
+  name?: string
+): Promise<LoginResponse> {
+  const response = await fetch(`${API_BASE_URL}/Auth/oauth/google`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ providerToken, name }),
+  });
+
+  return handleResponse<LoginResponse>(response);
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+  const requestBody: ForgotPasswordRequest = { email };
+
+  const response = await fetch(`${API_BASE_URL}/Auth/forgot-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+export async function resetPassword(
+  email: string,
+  token: string,
+  newPassword: string
+): Promise<{ message: string }> {
+  const requestBody: ResetPasswordRequest = { email, token, newPassword };
+
+  const response = await fetch(`${API_BASE_URL}/Auth/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  return handleResponse<{ message: string }>(response);
 }
 
 /**
@@ -808,13 +865,13 @@ export async function createBankTransferQR(orderId: number): Promise<{
  * POST /api/Payment/confirm-bank-transfer
  * 
  * @param orderId - The ID of the order
- * @param staffId - The ID of the staff confirming (optional, default 1)
+ * @param employeeId - The EmployeeID confirming payment (0 means system/no staff)
  * @param transactionCode - Transaction code (optional)
  * @returns Promise with confirmation result
  */
 export async function confirmPayment(
   orderId: number, 
-  staffId: number = 1, 
+  employeeId: number = 0,
   transactionCode?: string
 ): Promise<{
   success: boolean;
@@ -827,7 +884,7 @@ export async function confirmPayment(
     },
     body: JSON.stringify({ 
       orderId, 
-      staffId,
+      staffId: employeeId,
       transactionCode 
     }),
   });

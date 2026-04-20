@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import { MapPin, Mail, Phone } from 'lucide-react';
 import { FaFacebookF, FaTelegramPlane } from 'react-icons/fa';
 import { SiZalo } from 'react-icons/si';
@@ -7,21 +6,14 @@ import { useSettings } from '../contexts/SettingsContext';
 
 const Footer = () => {
   const { storeInfo } = useSettings();
-  const menuItems = [
-    { name: 'Trang chủ', path: '/' },
-    { name: 'Giới thiệu', path: '/gioi-thieu' },
-    { name: 'Sản phẩm', path: '/san-pham' },
-    { name: 'Tư vấn', path: '/tu-van' },
-    { name: 'Tin tức', path: '/tin-tuc' },
-    { name: 'Liên hệ', path: '/lien-he' },
-  ];
 
   return (
     <footer className="bg-gradient-to-b from-[#f8f8f8] to-white border-t-4 border-red-600">
       <div className="max-w-[1600px] mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12 items-start">
           {/* Contact Information */}
           <motion.div
+            className="min-w-0"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -114,37 +106,47 @@ const Footer = () => {
             </div>
           </motion.div>
 
-          {/* Navigation Menu */}
+          {/* Company Introduction */}
           <motion.div
+            className="min-w-0"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <h3 className="text-red-600 font-bold text-2xl uppercase mb-6 border-b-2 border-red-600 pb-3 inline-block">
-              Liên kết nhanh
+              Giới thiệu công ty
             </h3>
-            <ul className="space-y-3 mt-6">
-              {menuItems.map((item, index) => (
-                <motion.li 
-                  key={index}
-                  whileHover={{ x: 5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Link
-                    to={item.path}
-                    className="text-[#333] text-lg font-medium hover:text-red-600 transition-colors flex items-center gap-2 group"
-                  >
-                    <span className="text-red-600 group-hover:translate-x-1 transition-transform">▸</span>
-                    {item.name}
-                  </Link>
-                </motion.li>
-              ))}
-            </ul>
+            <div className="mt-6 space-y-4 text-[#333]">
+              <p className="text-lg leading-8">
+                <span className="font-semibold text-[#1f2d3d]">{storeInfo.storeName}</span> là đơn vị chuyên cung cấp băng dính,
+                màng PE và giải pháp đóng gói cho khách hàng cá nhân, cửa hàng và doanh nghiệp.
+              </p>
+              <p className="text-lg leading-8">
+                Chúng tôi cam kết sản phẩm chất lượng ổn định, giá cạnh tranh và dịch vụ tư vấn nhanh,
+                hỗ trợ giao hàng đúng tiến độ theo nhu cầu thực tế.
+              </p>
+              <div className="pt-2 space-y-2">
+                <p className="text-lg font-semibold text-[#1f2d3d]">Giá trị cốt lõi</p>
+                <p className="text-base flex items-start gap-2">
+                  <span className="text-red-600 mt-1">▸</span>
+                  Chất lượng minh bạch, đúng thông số.
+                </p>
+                <p className="text-base flex items-start gap-2">
+                  <span className="text-red-600 mt-1">▸</span>
+                  Đồng hành dài hạn cùng khách hàng.
+                </p>
+                <p className="text-base flex items-start gap-2">
+                  <span className="text-red-600 mt-1">▸</span>
+                  Tối ưu chi phí và hiệu quả vận hành.
+                </p>
+              </div>
+            </div>
           </motion.div>
 
           {/* Google Maps */}
           <motion.div
+            className="min-w-0"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}

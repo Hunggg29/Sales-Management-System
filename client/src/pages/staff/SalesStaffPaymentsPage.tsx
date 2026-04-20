@@ -5,6 +5,7 @@ import SalesStaffLayout from '../../components/SalesStaffLayout';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { Pagination } from '../../components/shared';
 import { getAllOrders, confirmPayment } from '../../services/api';
+import type { User } from '../../types';
 
 interface Payment {
   paymentID: number;
@@ -137,9 +138,16 @@ const SalesStaffPaymentsPage = () => {
     setConfirmingOrderId(payment.orderID);
 
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      const staffId = currentUser.userId || 1;
-      const result = await confirmPayment(payment.orderID, staffId, payment.transactionCode);
+      const currentUserRaw = localStorage.getItem('user');
+      const currentUser: User | null = currentUserRaw ? JSON.parse(currentUserRaw) : null;
+      const employeeId = currentUser?.employeeID;
+
+      if (!employeeId || employeeId <= 0) {
+        toast.error('Không xác định được mã nhân viên đăng nhập');
+        return;
+      }
+
+      const result = await confirmPayment(payment.orderID, employeeId, payment.transactionCode);
 
       if (result.success) {
         toast.success('Xác nhận thanh toán thành công', { type: 'success' });

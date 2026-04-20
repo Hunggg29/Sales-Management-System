@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 using SalesManagementAPI.Data;
 using SalesManagementAPI.Models;
 using SalesManagementAPI.Models.DTO;
@@ -9,10 +10,12 @@ namespace SalesManagementAPI.Services.Implementations
     public class OrderService : IOrderService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public OrderService(ApplicationDbContext context)
+        public OrderService(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<OrderResponseDto> CreateOrderFromCartAsync(int userId, CreateOrderDto createOrderDto)
@@ -93,32 +96,11 @@ namespace SalesManagementAPI.Services.Implementations
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // Return order response
-                    return new OrderResponseDto
-                    {
-                        OrderID = order.OrderID,
-                        OrderDate = order.OrderDate,
-                        TotalAmount = order.TotalAmount,
-                        Status = order.Status.ToString(),
-                        PaymentMethod = payment.PaymentMethod.ToString(),
-                        Payment = new PaymentResponseDto
-                        {
-                            PaymentID = payment.PaymentID,
-                            PaymentMethod = payment.PaymentMethod.ToString(),
-                            PaymentStatus = payment.PaymentStatus.ToString(),
-                            PaymentDate = payment.PaymentDate,
-                            TransactionCode = payment.TransactionCode,
-                            Amount = payment.Amount
-                        },
-                        OrderDetails = cart.CartItems.Select(ci => new OrderDetailDto
-                        {
-                            ProductID = ci.ProductID,
-                            ProductName = ci.Product!.ProductName,
-                            Quantity = ci.Quantity,
-                            UnitPrice = ci.Product.UnitPrice,
-                            TotalPrice = ci.Quantity * ci.Product.UnitPrice
-                        }).ToList()
-                    };
+                    var response = _mapper.Map<OrderResponseDto>(order);
+                    response.PaymentMethod = payment.PaymentMethod.ToString();
+                    response.Payment = _mapper.Map<PaymentResponseDto>(payment);
+                    response.OrderDetails = _mapper.Map<List<OrderDetailDto>>(cart.CartItems);
+                    return response;
                 }
                 catch
                 {
@@ -142,7 +124,7 @@ namespace SalesManagementAPI.Services.Implementations
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
-            return orders.Select(o => MapToOrderResponse(o)).ToList();
+            return orders.Select(MapToOrderResponse).ToList();
         }
 
         public async Task<PagedOrdersResponseDto> GetOrdersByUserIdPagedAsync(int userId, int page, int pageSize)
@@ -197,47 +179,15 @@ namespace SalesManagementAPI.Services.Implementations
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync();
 
-            return orders.Select(o => MapToOrderResponse(o)).ToList();
+            return orders.Select(MapToOrderResponse).ToList();
         }
 
         private OrderResponseDto MapToOrderResponse(Order o)
         {
             var normalizedStatus = NormalizeLegacyOrderStatus(o.Status);
-
-            return new OrderResponseDto
-            {
-                OrderID = o.OrderID,
-                OrderDate = o.OrderDate,
-                TotalAmount = o.TotalAmount,
-                Status = normalizedStatus.ToString(),
-                PaymentMethod = o.Payments?.FirstOrDefault()?.PaymentMethod.ToString() ?? "COD",
-                Customer = o.Customer != null ? new CreateCustomerDto
-                {
-                    UserID = o.Customer.UserID,
-                    FullName = o.Customer.FullName,
-                    Phone = o.Customer.Phone ?? "",
-                    Address = o.Customer.Address ?? "",
-                    CompanyName = o.Customer.CompanyName ?? ""
-                } : null,
-                Payment = o.Payments?.FirstOrDefault() != null ? new PaymentResponseDto
-                {
-                    PaymentID = o.Payments.First().PaymentID,
-                    PaymentMethod = o.Payments.First().PaymentMethod.ToString(),
-                    PaymentStatus = o.Payments.First().PaymentStatus.ToString(),
-                    PaymentDate = o.Payments.First().PaymentDate,
-                    TransactionCode = o.Payments.First().TransactionCode,
-                    Amount = o.Payments.First().Amount
-                } : null,
-                OrderDetails = o.OrderDetails?.Select(od => new OrderDetailDto
-                {
-                    ProductID = od.ProductID,
-                    ProductName = od.Product?.ProductName ?? "",
-                    Quantity = od.Quantity,
-                    UnitPrice = od.UnitPrice,
-                    TotalPrice = od.Quantity * od.UnitPrice,
-                    StockQuantity = od.Product?.StockQuantity ?? 0
-                }).ToList()
-            };
+            var dto = _mapper.Map<OrderResponseDto>(o);
+            dto.Status = normalizedStatus.ToString();
+            return dto;
         }
 
         public async Task<OrderResponseDto?> GetOrderByIdAsync(int orderId)

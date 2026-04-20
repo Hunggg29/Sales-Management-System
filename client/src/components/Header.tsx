@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdShoppingCart, MdSearch, MdMenu, MdClose, MdLogin, MdPersonAdd, MdPerson, MdEdit, MdHistory, MdLogout, MdKeyboardArrowDown } from 'react-icons/md';
 import AuthModal from './AuthModal';
 import logo from '../assets/images/logo.jpg';
@@ -10,6 +10,7 @@ import { useCart } from '../contexts/CartContext';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { cartItemCount, refreshCart } = useCart();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +34,24 @@ const Header = () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const authModeFromQuery = params.get('auth');
+    if (authModeFromQuery !== 'signin' && authModeFromQuery !== 'signup') {
+      return;
+    }
+
+    setAuthMode(authModeFromQuery);
+    setIsAuthModalOpen(true);
+    params.delete('auth');
+    const nextSearch = params.toString();
+    navigate(`${location.pathname}${nextSearch ? `?${nextSearch}` : ''}`, { replace: true });
+  }, [currentUser, location.pathname, location.search, navigate]);
 
   // Handle logout
   const handleLogout = () => {

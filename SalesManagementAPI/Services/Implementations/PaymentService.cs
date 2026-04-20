@@ -137,10 +137,16 @@ namespace SalesManagementAPI.Services.Implementations
                 }
 
                 // 3. Tạo Invoice (Hóa đơn) nếu chưa có
+                var resolvedEmployeeId = await ResolveValidatedEmployeeIdAsync(dto.StaffId);
+
                 Invoice invoice;
                 if (existingInvoice != null)
                 {
                     invoice = existingInvoice;
+                    if (invoice.StaffID == null && resolvedEmployeeId.HasValue)
+                    {
+                        invoice.StaffID = resolvedEmployeeId;
+                    }
                     Console.WriteLine($"Using existing invoice #{invoice.InvoiceNumber} for Order #{payment.OrderID}");
                 }
                 else
@@ -148,7 +154,7 @@ namespace SalesManagementAPI.Services.Implementations
                     invoice = new Invoice
                     {
                         OrderID = payment.OrderID,
-                        StaffID = null, // Set to null to avoid foreign key issues
+                        StaffID = resolvedEmployeeId,
                         InvoiceNumber = GenerateInvoiceNumber(payment.OrderID),
                         IssueDate = DateTime.Now,
                         TotalAmount = payment.Amount,
@@ -230,6 +236,25 @@ namespace SalesManagementAPI.Services.Implementations
         {
             var date = DateTime.Now;
             return $"INV{date:yyyyMMdd}{orderId:D6}";
+        }
+
+        private async Task<int?> ResolveValidatedEmployeeIdAsync(int staffId)
+        {
+            if (staffId <= 0)
+            {
+                return null;
+            }
+
+            var employeeExists = await _context.Employees
+                .Where(e => e.EmployeeID == staffId)
+                .AnyAsync();
+
+            if (!employeeExists)
+            {
+                throw new Exception("Nhân viên xác nhận không hợp lệ");
+            }
+
+            return staffId;
         }
     }
 }

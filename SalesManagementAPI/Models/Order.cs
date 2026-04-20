@@ -21,6 +21,7 @@ namespace SalesManagementAPI.Models
         public OrderStatus Status { get; set; } = OrderStatus.CREATED;
 
         public Customer? Customer { get; set; }
+        public Employee? Staff { get; set; }
         public ICollection<OrderDetail>? OrderDetails { get; set; }
         public ICollection<Payment>? Payments { get; set; }
         public ICollection<Invoice>? Invoices { get; set; }

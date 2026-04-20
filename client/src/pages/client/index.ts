@@ -12,3 +12,4 @@ export { default as CartPage } from './CartPage';
 export { default as OrderSuccessPage } from './OrderSuccessPage';
 export { default as OrderHistoryPage } from './OrderHistoryPage';
 export { default as PaymentFailedPage } from './PaymentFailedPage';
+export { default as ResetPasswordPage } from './ResetPasswordPage';

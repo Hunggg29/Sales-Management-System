@@ -1,16 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import HeroSlider from '../../components/HeroSlider';
 import CategorySidebar from '../../components/CategorySidebar';
 import ProductsGrid from '../../components/ProductsGrid';
+import ProductCard from '../../components/ProductCard';
 import NewsSection from '../../components/NewsSection';
-import { getAllCategories, getCategoriesWithProducts } from '../../services/api';
-import type { Category, Product } from '../../types';
+import { getAllCategories, getCategoriesWithProducts, getTopProducts } from '../../services/api';
+import type { Category, Product, TopProduct } from '../../types';
 import { newsArticles } from '../../data/newsData';
 import banner1 from '../../assets/images/banner-1.jpg';
 import banner2 from '../../assets/images/banner-2.jpg';
 import bannerText from '../../assets/images/banner-text.jpg';
 
 const HomePage = () => {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -18,6 +21,9 @@ const HomePage = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState<string>('');
+  const [featuredProducts, setFeaturedProducts] = useState<TopProduct[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [featuredError, setFeaturedError] = useState<string>('');
   const [selectedCategoryID, setSelectedCategoryID] = useState<number | null>(null);
 
   const slides = [
@@ -69,6 +75,18 @@ const HomePage = () => {
       } finally {
         setProductsLoading(false);
       }
+
+      // Fetch featured products
+      try {
+        const topProductsData = await getTopProducts(5);
+        setFeaturedProducts(topProductsData);
+        setFeaturedError('');
+      } catch (err) {
+        setFeaturedError('Không thể tải sản phẩm nổi bật');
+        console.error('Error fetching featured products:', err);
+      } finally {
+        setFeaturedLoading(false);
+      }
     };
 
     fetchData();
@@ -96,6 +114,32 @@ const HomePage = () => {
     ? 'SẢN PHẨM'
     : categories.find((c) => c.categoryID === selectedCategoryID)?.categoryName || 'DANH MỤC';
 
+  const productPriceMap = useMemo(() => {
+    const map = new Map<number, Product>();
+    allProducts.forEach((product) => {
+      map.set(product.productID, product);
+    });
+    return map;
+  }, [allProducts]);
+
+  const featuredProductsToShow = useMemo(() => {
+    return featuredProducts
+      .map((item) => productPriceMap.get(item.productID))
+      .filter((item): item is Product => Boolean(item))
+      .slice(0, 5);
+  }, [featuredProducts, productPriceMap]);
+
+  const featuredItemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.45,
+      },
+    },
+  };
+
   return (
     <>
       {/* Hero Slider */}
@@ -106,6 +150,50 @@ const HomePage = () => {
         onNextSlide={nextSlide}
         onGoToSlide={goToSlide}
       />
+
+      {/* Featured Products */}
+      <section className="max-w-[1600px] mx-auto px-4 py-10">
+        <div className="border-b-2 border-[#EAEAEA] mb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[#333333] font-semibold text-3xl uppercase inline-block border-l-4 border-[#FF3300] pl-3 pb-2">
+              SẢN PHẨM NỔI BẬT
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate('/san-pham')}
+              className="text-sm text-gray-500 hover:text-red-600 underline transition-colors cursor-pointer"
+            >
+              Xem tất cả
+            </button>
+          </div>
+        </div>
+
+        {featuredLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="h-[310px] rounded-lg bg-[#F2F2F2] animate-pulse" />
+            ))}
+          </div>
+        ) : featuredError ? (
+          <div className="rounded-lg border border-[#F1D0D0] bg-[#FFF7F7] px-4 py-3 text-[#A94442] text-sm">
+            {featuredError}
+          </div>
+        ) : featuredProductsToShow.length === 0 ? (
+          <div className="rounded-lg border border-[#E5E5E5] bg-white px-4 py-6 text-center text-[#666666]">
+            Chưa có dữ liệu sản phẩm nổi bật
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+            {featuredProductsToShow.map((product) => (
+              <ProductCard
+                key={product.productID}
+                product={product}
+                variants={featuredItemVariants}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-4 py-12">
@@ -134,7 +222,7 @@ const HomePage = () => {
       </div>
 
       {/* News Section */}
-      <NewsSection articles={newsArticles} />
+      <NewsSection articles={newsArticles.slice(0, 4)} />
     </>
   );
 };

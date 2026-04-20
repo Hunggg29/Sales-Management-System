@@ -9,6 +9,7 @@ export interface User {
   role: string;
   createdAt: string;
   isActive: boolean;
+  employeeID?: number | null;
 }
 
 export interface EmployeeAdmin {
@@ -80,6 +81,16 @@ export interface LoginResponse {
 // Response from register endpoint
 export interface RegisterResponse {
   message: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  token: string;
+  newPassword: string;
 }
 
 // News Article

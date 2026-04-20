@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SalesManagementAPI.Data;
-using SalesManagementAPI.Models;
 using SalesManagementAPI.Models.DTO;
-using System.Globalization;
+using SalesManagementAPI.Services.Interfaces;
 
 namespace SalesManagementAPI.Controllers
 {
@@ -11,13 +8,11 @@ namespace SalesManagementAPI.Controllers
   [ApiController]
   public class StatisticsController : ControllerBase
   {
-    private readonly ApplicationDbContext _context;
-    private readonly CultureInfo _vietnameseCulture;
+    private readonly IStatisticsService _statisticsService;
 
-    public StatisticsController(ApplicationDbContext context)
+    public StatisticsController(IStatisticsService statisticsService)
     {
-      _context = context;
-      _vietnameseCulture = new CultureInfo("vi-VN");
+      _statisticsService = statisticsService;
     }
 
     /// <summary>
@@ -29,69 +24,7 @@ namespace SalesManagementAPI.Controllers
     {
       try
       {
-        var now = DateTime.Now;
-        var currentMonth = new DateTime(now.Year, now.Month, 1);
-        var previousMonth = currentMonth.AddMonths(-1);
-
-        // Tổng đơn hàng
-        var totalOrders = await _context.Orders.CountAsync();
-        var ordersThisMonth = await _context.Orders
-            .CountAsync(o => o.OrderDate >= currentMonth);
-        var ordersLastMonth = await _context.Orders
-            .CountAsync(o => o.OrderDate >= previousMonth && o.OrderDate < currentMonth);
-
-        // Tổng khách hàng (based on first order date since Customer doesn't have CreatedAt)
-        var totalCustomers = await _context.Customers.CountAsync();
-        var customersThisMonth = await _context.Customers
-            .Where(c => c.Orders != null && c.Orders.Any(o => o.OrderDate >= currentMonth))
-            .CountAsync();
-        var customersLastMonth = await _context.Customers
-            .Where(c => c.Orders != null && c.Orders.Any(o => o.OrderDate >= previousMonth && o.OrderDate < currentMonth))
-            .CountAsync();
-
-        // Tổng sản phẩm
-        var totalProducts = await _context.Products.CountAsync();
-        var productsThisMonth = await _context.Products
-            .CountAsync(p => p.CreatedAt >= currentMonth);
-        var productsLastMonth = await _context.Products
-            .CountAsync(p => p.CreatedAt >= previousMonth && p.CreatedAt < currentMonth);
-
-        // Doanh thu (CHỊ TÍNH KHI ORDER = COMPLETED VÀ PAYMENT = PAID)
-        var totalRevenue = await _context.Orders
-            .Include(o => o.Payments)
-            .Where(o => o.Status == OrderStatus.COMPLETED &&
-                   o.Payments != null &&
-                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
-            .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-
-        var revenueThisMonth = await _context.Orders
-            .Include(o => o.Payments)
-            .Where(o => o.OrderDate >= currentMonth &&
-                   o.Status == OrderStatus.COMPLETED &&
-                   o.Payments != null &&
-                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
-            .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-
-        var revenueLastMonth = await _context.Orders
-            .Include(o => o.Payments)
-            .Where(o => o.OrderDate >= previousMonth && o.OrderDate < currentMonth &&
-                   o.Status == OrderStatus.COMPLETED &&
-                   o.Payments != null &&
-                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
-            .SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
-
-        // Tính phần trăm tăng trưởng
-        var stats = new DashboardStatsDto
-        {
-          TotalOrders = totalOrders,
-          TotalCustomers = totalCustomers,
-          TotalProducts = totalProducts,
-          TotalRevenue = totalRevenue,
-          OrdersGrowthPercentage = CalculateGrowth(ordersThisMonth, ordersLastMonth),
-          CustomersGrowthPercentage = CalculateGrowth(customersThisMonth, customersLastMonth),
-          ProductsGrowthPercentage = CalculateGrowth(productsThisMonth, productsLastMonth),
-          RevenueGrowthPercentage = CalculateGrowth(revenueThisMonth, revenueLastMonth)
-        };
+      var stats = await _statisticsService.GetDashboardStatsAsync();
 
         return Ok(stats);
       }
@@ -110,49 +43,7 @@ namespace SalesManagementAPI.Controllers
     {
       try
       {
-        var now = DateTime.Now;
-        var startDate = now.AddMonths(-months + 1);
-        startDate = new DateTime(startDate.Year, startDate.Month, 1);
-
-        var monthlyData = await _context.Orders
-            .Include(o => o.Payments)
-            .Where(o => o.OrderDate >= startDate &&
-                   o.Status == OrderStatus.COMPLETED &&
-                   o.Payments != null &&
-                   o.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
-            .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
-            .Select(g => new
-            {
-              Year = g.Key.Year,
-              Month = g.Key.Month,
-              Revenue = g.Sum(o => o.TotalAmount),
-              OrderCount = g.Count()
-            })
-            .OrderBy(x => x.Year)
-            .ThenBy(x => x.Month)
-            .ToListAsync();
-
-        // Tạo danh sách đầy đủ các tháng (bao gồm cả tháng không có dữ liệu)
-        var result = new List<MonthlyRevenueDto>();
-        var currentDate = startDate;
-
-        for (int i = 0; i < months; i++)
-        {
-          var data = monthlyData.FirstOrDefault(d =>
-              d.Year == currentDate.Year && d.Month == currentDate.Month);
-
-          result.Add(new MonthlyRevenueDto
-          {
-            Year = currentDate.Year,
-            Month = currentDate.Month,
-            MonthName = $"Tháng {currentDate.Month}/{currentDate.Year}",
-            Revenue = data?.Revenue ?? 0,
-            OrderCount = data?.OrderCount ?? 0
-          });
-
-          currentDate = currentDate.AddMonths(1);
-        }
-
+        var result = await _statisticsService.GetMonthlyRevenueAsync(months);
         return Ok(result);
       }
       catch (Exception ex)
@@ -170,25 +61,7 @@ namespace SalesManagementAPI.Controllers
     {
       try
       {
-        var topProducts = await _context.OrderDetails
-            .Include(od => od.Product)
-            .Include(od => od.Order)
-                .ThenInclude(o => o!.Payments)
-            .Where(od => od.Order!.Status == OrderStatus.COMPLETED &&
-                   od.Order.Payments != null &&
-                   od.Order.Payments.Any(p => p.PaymentStatus == PaymentStatus.PAID))
-            .GroupBy(od => new { od.ProductID, od.Product!.ProductName, od.Product.ImageURL })
-            .Select(g => new TopProductDto
-            {
-              ProductID = g.Key.ProductID,
-              ProductName = g.Key.ProductName,
-              ImageURL = g.Key.ImageURL,
-              TotalSold = g.Sum(od => od.Quantity),
-              TotalRevenue = g.Sum(od => od.Quantity * od.UnitPrice)
-            })
-            .OrderByDescending(p => p.TotalSold)
-            .Take(top)
-            .ToListAsync();
+        var topProducts = await _statisticsService.GetTopProductsAsync(top);
 
         return Ok(topProducts);
       }
@@ -207,19 +80,7 @@ namespace SalesManagementAPI.Controllers
     {
       try
       {
-        var recentOrders = await _context.Orders
-            .Include(o => o.Customer)
-            .OrderByDescending(o => o.OrderDate)
-            .Take(count)
-            .Select(o => new RecentOrderDto
-            {
-              OrderID = o.OrderID,
-              CustomerName = o.Customer != null ? o.Customer.FullName : "Khách vãng lai",
-              TotalAmount = o.TotalAmount,
-              Status = o.Status.ToString(),
-              OrderDate = o.OrderDate
-            })
-            .ToListAsync();
+        var recentOrders = await _statisticsService.GetRecentOrdersAsync(count);
 
         return Ok(recentOrders);
       }
@@ -238,27 +99,7 @@ namespace SalesManagementAPI.Controllers
     {
       try
       {
-        var dashboardStatsResult = await GetDashboardStats();
-        var monthlyRevenueResult = await GetMonthlyRevenue(12);
-        var topProductsResult = await GetTopProducts(10);
-        var recentOrdersResult = await GetRecentOrders(10);
-
-        // Check if any of the results failed
-        if (dashboardStatsResult.Result is not OkObjectResult dashboardOk ||
-            monthlyRevenueResult.Result is not OkObjectResult monthlyOk ||
-            topProductsResult.Result is not OkObjectResult productsOk ||
-            recentOrdersResult.Result is not OkObjectResult ordersOk)
-        {
-          return StatusCode(500, new { message = "Lỗi khi lấy một phần dữ liệu báo cáo" });
-        }
-
-        var report = new DetailedReportDto
-        {
-          OverallStats = (DashboardStatsDto)dashboardOk.Value!,
-          MonthlyRevenues = (List<MonthlyRevenueDto>)monthlyOk.Value!,
-          TopProducts = (List<TopProductDto>)productsOk.Value!,
-          RecentOrders = (List<RecentOrderDto>)ordersOk.Value!
-        };
+        var report = await _statisticsService.GetDetailedReportAsync();
 
         return Ok(report);
       }
@@ -268,15 +109,5 @@ namespace SalesManagementAPI.Controllers
       }
     }
 
-    /// <summary>
-    /// Hàm tính phần trăm tăng trưởng
-    /// </summary>
-    private decimal CalculateGrowth(decimal current, decimal previous)
-    {
-      if (previous == 0)
-        return current > 0 ? 100 : 0;
-
-      return Math.Round(((current - previous) / previous) * 100, 1);
-    }
   }
 }

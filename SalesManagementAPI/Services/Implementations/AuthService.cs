@@ -1,9 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Google.Apis.Auth;
 using Microsoft.IdentityModel.Tokens;
 using SalesManagementAPI.Data;
 using SalesManagementAPI.Models;
 using SalesManagementAPI.Services.Interfaces;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Security.Claims;
 using System.Text;
 using BC = BCrypt.Net.BCrypt;
@@ -14,23 +17,116 @@ namespace SalesManagementAPI.Services.Implementations
     {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
-        public AuthService(ApplicationDbContext context, IConfiguration configuration)
+        public AuthService(ApplicationDbContext context, IConfiguration configuration, IEmailService emailService)
         {
             _context = context;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         public async Task<(bool success, string token)> LoginAsync(string email, string password)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _context.Users
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Email == email);
+
             if (user == null || !BC.Verify(password, user.PasswordHash))
             {
                 return (false, "Sai mật khẩu hoặc email");
             }
 
+            if (!user.IsActive)
+            {
+                return (false, "Tài khoản đã bị vô hiệu hóa");
+            }
+
+            if (user.Role == "Staff")
+            {
+                if (user.Employee == null)
+                {
+                    return (false, "Tài khoản Staff chưa có hồ sơ nhân viên. Vui lòng liên hệ quản trị viên.");
+                }
+
+                if (!user.Employee.IsActive)
+                {
+                    return (false, "Hồ sơ nhân viên đã bị vô hiệu hóa");
+                }
+            }
+
             var token = GenerateJwtToken(user);
             return (true, token);
+        }
+
+        public async Task<(bool success, string tokenOrMessage, User? user)> GoogleLoginAsync(string providerToken, string? fallbackName)
+        {
+            if (string.IsNullOrWhiteSpace(providerToken))
+            {
+                return (false, "Google token không hợp lệ", null);
+            }
+
+            var googleClientId = _configuration["GoogleOAuth:ClientId"];
+            if (string.IsNullOrWhiteSpace(googleClientId))
+            {
+                return (false, "Thiếu cấu hình GoogleOAuth:ClientId", null);
+            }
+
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                payload = await GoogleJsonWebSignature.ValidateAsync(providerToken, new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { googleClientId }
+                });
+            }
+            catch
+            {
+                return (false, "Google token không hợp lệ hoặc đã hết hạn", null);
+            }
+
+            if (string.IsNullOrWhiteSpace(payload.Email) || payload.EmailVerified != true)
+            {
+                return (false, "Email Google chưa được xác minh", null);
+            }
+
+            var user = await _context.Users
+                .Include(u => u.Employee)
+                .FirstOrDefaultAsync(u => u.Email == payload.Email);
+
+            if (user == null)
+            {
+                var displayName = !string.IsNullOrWhiteSpace(payload.Name)
+                    ? payload.Name
+                    : fallbackName;
+
+                if (string.IsNullOrWhiteSpace(displayName))
+                {
+                    displayName = payload.Email.Split('@')[0];
+                }
+
+                user = new User
+                {
+                    UserName = displayName,
+                    Email = payload.Email,
+                    // Keep PasswordHash non-null for current schema while allowing social-only auth.
+                    PasswordHash = BC.HashPassword(Guid.NewGuid().ToString("N")),
+                    Role = "User",
+                    CreatedAt = DateTime.Now,
+                    IsActive = true
+                };
+
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+            }
+
+            if (!user.IsActive)
+            {
+                return (false, "Tài khoản đã bị vô hiệu hóa", null);
+            }
+
+            var token = GenerateJwtToken(user);
+            return (true, token, user);
         }
 
         public async Task<(bool success, string message)> RegisterAsync(string username, string email, string password)
@@ -82,46 +178,9 @@ namespace SalesManagementAPI.Services.Implementations
 
         public async Task<User> GetUserByEmailAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-        }
-
-        public async Task<(bool success, string token, string role)> AdminLoginAsync(string email, string password)
-        {
-            var user = await _context.Users
+            return await _context.Users
                 .Include(u => u.Employee)
                 .FirstOrDefaultAsync(u => u.Email == email);
-
-            if (user == null || !BC.Verify(password, user.PasswordHash))
-            {
-                return (false, "Email hoặc mật khẩu không đúng", "");
-            }
-
-            // Kiểm tra role - chỉ Admin hoặc Staff mới được đăng nhập
-            if (user.Role != "Admin" && user.Role != "Staff")
-            {
-                return (false, "Bạn không có quyền truy cập vào trang quản trị", "");
-            }
-
-            if (user.Role == "Staff")
-            {
-                if (user.Employee == null)
-                {
-                    return (false, "Tài khoản Staff chưa có hồ sơ nhân viên. Vui lòng liên hệ quản trị viên.", "");
-                }
-
-                if (!user.Employee.IsActive)
-                {
-                    return (false, "Hồ sơ nhân viên đã bị vô hiệu hóa", "");
-                }
-            }
-
-            if (!user.IsActive)
-            {
-                return (false, "Tài khoản đã bị vô hiệu hóa", "");
-            }
-
-            var token = GenerateJwtToken(user);
-            return (true, token, user.Role);
         }
 
         public async Task<(bool success, string message)> RegisterAdminAsync(string username, string email, string password, string role)
@@ -168,6 +227,71 @@ namespace SalesManagementAPI.Services.Implementations
             return (true, $"{role} registered successfully");
         }
 
+        public async Task ForgotPasswordAsync(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+            if (user == null)
+            {
+                return;
+            }
+
+            var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+            var tokenHash = HashToken(rawToken);
+
+            user.ResetPasswordTokenHash = tokenHash;
+            user.ResetPasswordTokenExpiresAt = DateTime.UtcNow.AddMinutes(20);
+            user.ResetPasswordTokenUsedAt = null;
+
+            await _context.SaveChangesAsync();
+
+            var frontendBaseUrl = _configuration["App:FrontendBaseUrl"]?.TrimEnd('/') ?? "http://localhost:5173";
+            var resetUrl = $"{frontendBaseUrl}/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(rawToken)}";
+
+            var expiresAtLocal = user.ResetPasswordTokenExpiresAt.Value.ToLocalTime()
+                .ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+
+            var htmlBody = $@"
+                <p>Xin chào {System.Net.WebUtility.HtmlEncode(user.UserName)},</p>
+                <p>Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+                <p>Vui lòng bấm vào liên kết dưới đây để đặt lại mật khẩu:</p>
+                <p><a href=""{resetUrl}"">Đặt lại mật khẩu</a></p>
+                <p>Liên kết sẽ hết hạn lúc <strong>{expiresAtLocal}</strong>.</p>
+                <p>Nếu bạn không thực hiện yêu cầu này, bạn có thể bỏ qua email này.</p>";
+
+            await _emailService.SendAsync(user.Email, "Yêu cầu đặt lại mật khẩu", htmlBody);
+        }
+
+        public async Task<(bool success, string message)> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+            if (user == null)
+            {
+                return (false, "Token không hợp lệ hoặc đã hết hạn");
+            }
+
+            if (string.IsNullOrWhiteSpace(user.ResetPasswordTokenHash) ||
+                user.ResetPasswordTokenExpiresAt == null ||
+                user.ResetPasswordTokenUsedAt != null ||
+                user.ResetPasswordTokenExpiresAt <= DateTime.UtcNow)
+            {
+                return (false, "Token không hợp lệ hoặc đã hết hạn");
+            }
+
+            var incomingTokenHash = HashToken(token);
+            if (!string.Equals(incomingTokenHash, user.ResetPasswordTokenHash, StringComparison.Ordinal))
+            {
+                return (false, "Token không hợp lệ hoặc đã hết hạn");
+            }
+
+            user.PasswordHash = BC.HashPassword(newPassword);
+            user.ResetPasswordTokenUsedAt = DateTime.UtcNow;
+            user.ResetPasswordTokenHash = null;
+            user.ResetPasswordTokenExpiresAt = null;
+
+            await _context.SaveChangesAsync();
+            return (true, "Đặt lại mật khẩu thành công");
+        }
+
         private string GenerateJwtToken(User user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
@@ -197,6 +321,13 @@ namespace SalesManagementAPI.Services.Implementations
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static string HashToken(string rawToken)
+        {
+            var bytes = Encoding.UTF8.GetBytes(rawToken);
+            var hash = SHA256.HashData(bytes);
+            return Convert.ToHexString(hash);
         }
 
     }

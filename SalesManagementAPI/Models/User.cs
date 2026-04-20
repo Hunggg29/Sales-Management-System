@@ -1,4 +1,4 @@
-﻿// Models/User.cs
+// Models/User.cs
 namespace SalesManagementAPI.Models
 {
     public class User
@@ -10,9 +10,11 @@ namespace SalesManagementAPI.Models
         public string Role { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; }
+        public string? ResetPasswordTokenHash { get; set; }
+        public DateTime? ResetPasswordTokenExpiresAt { get; set; }
+        public DateTime? ResetPasswordTokenUsedAt { get; set; }
 
         public Customer? Customer { get; set; }
-        public ICollection<Invoice>? Invoices { get; set; }
         public Employee? Employee { get; set; }
     }
 }
