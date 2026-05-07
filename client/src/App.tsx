@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import FaqChatbotWidget from './components/FaqChatbotWidget';
 import { CartProvider } from './contexts/CartContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 
@@ -94,6 +95,7 @@ function App() {
                 </Routes>
               </main>
               <Footer />
+              <FaqChatbotWidget />
             </div>
           } />
         </Routes>

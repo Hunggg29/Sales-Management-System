@@ -2,10 +2,18 @@ namespace SalesManagementAPI.Models.DTO
 {
     public class SepayWebhookDto
     {
-        public string? Content { get; set; }        // nội dung chuyển khoản (vd: "DH42")
-        public string? TransferCode { get; set; }   // mã giao dịch từ ngân hàng
-        public decimal TransferAmount { get; set; } // số tiền chuyển khoản
-        public string? BankCode { get; set; }       // mã ngân hàng
+        // Một số cổng webhook dùng các tên field khác nhau.
+        public string? Content { get; set; }             // vd: "DH42"
+        public string? Description { get; set; }         // alias content
+        public string? TransferContent { get; set; }     // alias content
+        public string? TransactionContent { get; set; }  // alias content
+
+        public string? TransferCode { get; set; }        // mã giao dịch
+        public string? Code { get; set; }                // alias transfer code
+
+        public decimal? TransferAmount { get; set; }     // số tiền chuyển khoản
+        public decimal? Amount { get; set; }             // alias amount
+        public string? BankCode { get; set; }
     }
 
     public class ConfirmPaymentDto

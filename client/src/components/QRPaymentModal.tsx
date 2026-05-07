@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Modal, Button } from '../components/shared';
 import { MdContentCopy, MdCheckCircle, MdInfo } from 'react-icons/md';
 import { toast } from 'react-toastify';
+import { checkPaymentStatus } from '../services/api';
 
 const PAYMENT_POLL_INTERVAL = 5000; // 5 giây
-const API_BASE_URL = 'https://localhost:7078/api';
 
 interface QRPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onPaymentSuccess?: () => void;
   qrData: {
     qrCodeUrl: string;
     bankName: string;
@@ -21,7 +22,7 @@ interface QRPaymentModalProps {
   } | null;
 }
 
-const QRPaymentModal = ({ isOpen, onClose, qrData }: QRPaymentModalProps) => {
+const QRPaymentModal = ({ isOpen, onClose, onPaymentSuccess, qrData }: QRPaymentModalProps) => {
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(600); // 10 phút = 600 giây
   const [isPaid, setIsPaid] = useState(false);
@@ -48,13 +49,12 @@ const QRPaymentModal = ({ isOpen, onClose, qrData }: QRPaymentModalProps) => {
 
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/Payment/check-payment-status/${qrData.orderId}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await checkPaymentStatus(qrData.orderId);
         if (data.paymentStatus?.toUpperCase() === 'PAID') {
           stopPolling();
           setIsPaid(true);
           toast.success('Đơn hàng đã được thanh toán thành công!');
+          onPaymentSuccess?.();
         }
       } catch {
         // bỏ qua lỗi mạng tạm thời
@@ -62,7 +62,7 @@ const QRPaymentModal = ({ isOpen, onClose, qrData }: QRPaymentModalProps) => {
     }, PAYMENT_POLL_INTERVAL);
 
     return stopPolling;
-  }, [isOpen, qrData]);
+  }, [isOpen, onPaymentSuccess, qrData]);
 
   // Countdown timer
   useEffect(() => {

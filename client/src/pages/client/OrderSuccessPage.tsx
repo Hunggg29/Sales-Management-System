@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MdArrowBack, MdLocalShipping, MdHistory, MdCheckCircle, MdPayment, MdReceipt } from 'react-icons/md';
 import { toast } from 'react-toastify';
@@ -17,23 +17,36 @@ const OrderSuccessPage = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [hasInvoice, setHasInvoice] = useState(false);
 
+  const normalizeStatus = (status?: string) => (status || '').toUpperCase();
+
+  const refreshOrderData = useCallback(async () => {
+    if (!orderId) return;
+
+    const parsedOrderId = parseInt(orderId);
+    const data = await getOrderById(parsedOrderId);
+    setOrder(data);
+
+    if (normalizeStatus(data.payment?.paymentStatus) === 'PAID') {
+      try {
+        await getInvoiceByOrderId(parsedOrderId);
+        setHasInvoice(true);
+      } catch {
+        setHasInvoice(false);
+      }
+    } else {
+      setHasInvoice(false);
+    }
+  }, [orderId]);
+
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!orderId) return;
+      if (!orderId) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        const data = await getOrderById(parseInt(orderId));
-        setOrder(data);
-        
-        // Check if invoice exists for paid orders
-        if (data.payment?.paymentStatus === 'PAID' || data.payment?.paymentStatus === 'Paid') {
-          try {
-            await getInvoiceByOrderId(parseInt(orderId));
-            setHasInvoice(true);
-          } catch {
-            setHasInvoice(false);
-          }
-        }
+        await refreshOrderData();
       } catch (err) {
         toast.error('Không thể tải thông tin đơn hàng');
         navigate('/');
@@ -43,7 +56,7 @@ const OrderSuccessPage = () => {
     };
 
     fetchOrder();
-  }, [orderId, navigate]);
+  }, [navigate, orderId, refreshOrderData]);
 
   if (isLoading) {
     return (
@@ -58,23 +71,25 @@ const OrderSuccessPage = () => {
   const getPaymentMethodText = (method: string) => {
     const methods: Record<string, string> = {
       COD: 'Thanh toán khi nhận hàng',
-      BankTransfer: 'Chuyển khoản ngân hàng',
-      CreditCard: 'Thẻ tín dụng/Ghi nợ',
+      BANK_TRANSFER: 'Chuyển khoản ngân hàng',
+      CASH: 'Tiền mặt',
     };
-    return methods[method] || method;
+    return methods[normalizeStatus(method)] || method;
   };
 
   const getPageTitle = (status: string) => {
-    switch (status) {
-      case 'Pending':
+    switch (normalizeStatus(status)) {
+      case 'CREATED':
         return 'Đơn hàng đang chờ duyệt!';
-      case 'Confirmed':
+      case 'APPROVED':
         return 'Đơn hàng đã được xác nhận!';
-      case 'Processing':
+      case 'SHIPPING':
         return 'Đơn hàng đang được vận chuyển!';
-      case 'Completed':
+      case 'DELIVERED':
+        return 'Đơn hàng đã giao thành công!';
+      case 'COMPLETED':
         return 'Đơn hàng giao thành công!';
-      case 'Cancelled':
+      case 'CANCELLED':
         return 'Đơn hàng đã bị hủy!';
       default:
         return 'Thông tin đơn hàng';
@@ -82,16 +97,18 @@ const OrderSuccessPage = () => {
   };
 
   const getPageMessage = (status: string) => {
-    switch (status) {
-      case 'Pending':
+    switch (normalizeStatus(status)) {
+      case 'CREATED':
         return 'Cảm ơn bạn đã đặt hàng. Đơn hàng của bạn đã được ghi nhận và đang chờ nhân viên xác nhận.';
-      case 'Confirmed':
+      case 'APPROVED':
         return 'Đơn hàng của bạn đã được nhân viên xác nhận và đang được chuẩn bị.';
-      case 'Processing':
+      case 'SHIPPING':
         return 'Đơn hàng của bạn đang trên đường vận chuyển đến địa chỉ nhận hàng.';
-      case 'Completed':
+      case 'DELIVERED':
+        return 'Đơn hàng đã giao thành công. Bạn có thể hoàn tất thanh toán ngay bằng QR.';
+      case 'COMPLETED':
         return 'Đơn hàng đã được giao thành công. Cảm ơn bạn đã tin tưởng và mua sắm tại cửa hàng!';
-      case 'Cancelled':
+      case 'CANCELLED':
         return 'Rất tiếc, đơn hàng của bạn đã bị hủy. Vui lòng liên hệ bộ phận CSKH nếu có thắc mắc.';
       default:
         return '';
@@ -120,10 +137,11 @@ const OrderSuccessPage = () => {
     }
   };
 
-  const isOrderCompleted = order?.status === 'Completed' || order?.status === 'COMPLETED';
-  const isPaymentUnpaid = order?.payment?.paymentStatus === 'Unpaid' || order?.payment?.paymentStatus === 'UNPAID';
-  const isPaymentPaid = order?.payment?.paymentStatus === 'Paid' || order?.payment?.paymentStatus === 'PAID';
-  const canPayOnline = isOrderCompleted && isPaymentUnpaid;
+  const normalizedOrderStatus = normalizeStatus(order?.status);
+  const normalizedPaymentStatus = normalizeStatus(order?.payment?.paymentStatus);
+  const isPaymentUnpaid = normalizedPaymentStatus === 'UNPAID';
+  const isPaymentPaid = normalizedPaymentStatus === 'PAID';
+  const canPayOnline = isPaymentUnpaid && ['APPROVED', 'SHIPPING', 'DELIVERED', 'COMPLETED'].includes(normalizedOrderStatus);
   const canViewInvoice = isPaymentPaid && hasInvoice;
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -177,6 +195,14 @@ const OrderSuccessPage = () => {
                 <span className="font-mono text-sm">{order.payment.transactionCode}</span>
               </div>
             )}
+            {order.payment && (
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">Trạng thái thanh toán:</span>
+                <span className={`font-semibold ${isPaymentPaid ? 'text-green-600' : 'text-amber-600'}`}>
+                  {isPaymentPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Products */}
@@ -184,9 +210,9 @@ const OrderSuccessPage = () => {
             <h3 className="font-semibold text-gray-800 mb-3">Sản phẩm:</h3>
             <div className="space-y-3">
               {order.orderDetails?.map((item) => (
-                <div key={item.productID} className={`flex justify-between items-center py-3 border-b ${order.status === 'Cancelled' ? 'opacity-50' : ''}`}>
+                <div key={item.productID} className={`flex justify-between items-center py-3 border-b ${normalizedOrderStatus === 'CANCELLED' ? 'opacity-50' : ''}`}>
                   <div className="flex-1">
-                    <p className={`font-medium text-gray-800 ${order.status === 'Cancelled' ? 'line-through' : ''}`}>
+                    <p className={`font-medium text-gray-800 ${normalizedOrderStatus === 'CANCELLED' ? 'line-through' : ''}`}>
                       {item.productName}
                     </p>
                     <p className="text-sm text-gray-600">
@@ -194,13 +220,14 @@ const OrderSuccessPage = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold text-red-600 ${order.status === 'Cancelled' ? 'line-through' : ''}`}>
+                    <p className={`font-semibold text-red-600 ${normalizedOrderStatus === 'CANCELLED' ? 'line-through' : ''}`}>
                       {item.totalPrice.toLocaleString('vi-VN')}₫
                     </p>
-                    {order.status === 'Cancelled' && <span className="text-xs text-red-500 font-medium">Đã hủy</span>}
-                    {order.status === 'Confirmed' && <span className="text-xs text-green-500 font-medium">Đã xác nhận</span>}
-                    {order.status === 'Processing' && <span className="text-xs text-blue-500 font-medium flex items-center justify-end gap-1"><MdLocalShipping className="w-3 h-3" /> Đang giao</span>}
-                    {order.status === 'Completed' && <span className="text-xs text-emerald-500 font-medium flex items-center justify-end gap-1"><MdCheckCircle className="w-3 h-3" /> Thành công</span>}
+                    {normalizedOrderStatus === 'CANCELLED' && <span className="text-xs text-red-500 font-medium">Đã hủy</span>}
+                    {normalizedOrderStatus === 'APPROVED' && <span className="text-xs text-green-500 font-medium">Đã xác nhận</span>}
+                    {normalizedOrderStatus === 'SHIPPING' && <span className="text-xs text-blue-500 font-medium flex items-center justify-end gap-1"><MdLocalShipping className="w-3 h-3" /> Đang giao</span>}
+                    {normalizedOrderStatus === 'DELIVERED' && <span className="text-xs text-cyan-600 font-medium flex items-center justify-end gap-1"><MdCheckCircle className="w-3 h-3" /> Đã giao</span>}
+                    {normalizedOrderStatus === 'COMPLETED' && <span className="text-xs text-emerald-500 font-medium flex items-center justify-end gap-1"><MdCheckCircle className="w-3 h-3" /> Thành công</span>}
                   </div>
                 </div>
               ))}
@@ -220,7 +247,7 @@ const OrderSuccessPage = () => {
 
         {/* Actions */}
         <div className="space-y-4">
-          {/* Payment Button for Completed & Unpaid Orders */}
+          {/* Payment Button for Confirmed+ and Unpaid Orders */}
           {canPayOnline && (
             <button
               onClick={handlePayNow}
@@ -228,7 +255,7 @@ const OrderSuccessPage = () => {
               className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <MdPayment className="w-6 h-6" />
-              {isProcessingPayment ? 'Đang xử lý...' : 'Thanh toán online ngay'}
+              {isProcessingPayment ? 'Đang xử lý...' : 'Thanh toán ngay'}
             </button>
           )}
 
@@ -267,10 +294,10 @@ const OrderSuccessPage = () => {
         isOpen={showQRModal}
         onClose={() => {
           setShowQRModal(false);
-          // Refresh order data after closing payment modal
-          if (orderId) {
-            getOrderById(parseInt(orderId)).then(setOrder).catch(console.error);
-          }
+          refreshOrderData().catch(console.error);
+        }}
+        onPaymentSuccess={() => {
+          refreshOrderData().catch(console.error);
         }}
         qrData={qrData}
       />

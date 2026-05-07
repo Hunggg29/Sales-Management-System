@@ -896,6 +896,29 @@ export async function confirmPayment(
 }
 
 /**
+ * Check payment status for an order
+ * GET /api/Payment/check-payment-status/{orderId}
+ */
+export async function checkPaymentStatus(orderId: number): Promise<{
+  orderId: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  amount: number;
+  transactionCode?: string;
+  paymentDate: string;
+  orderStatus?: string;
+}> {
+  const response = await fetch(`${API_BASE_URL}/Payment/check-payment-status/${orderId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  return handleResponse(response);
+}
+
+/**
  * Get invoice by order ID
  * GET /api/Payment/invoice/{orderId}
  * 

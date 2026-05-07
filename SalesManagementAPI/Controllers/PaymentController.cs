@@ -73,23 +73,43 @@ namespace SalesManagementAPI.Controllers
         {
             try
             {
-                // Tìm orderId trong nội dung chuyển khoản, định dạng "DH{orderId}" (vd: "DH42")
-                var match = Regex.Match(dto.Content ?? "", @"DH(\d+)", RegexOptions.IgnoreCase);
+                var transferContent =
+                    dto.Content
+                    ?? dto.Description
+                    ?? dto.TransferContent
+                    ?? dto.TransactionContent
+                    ?? string.Empty;
+
+                var transferCode = dto.TransferCode ?? dto.Code;
+
+                // Hỗ trợ nhiều định dạng nội dung: DH42, DH-42, DON42, ORDER42, ...
+                var match = Regex.Match(
+                    transferContent,
+                    @"(?:DH|DON|ORDER)\s*[-#:]?\s*(\d+)",
+                    RegexOptions.IgnoreCase);
+
                 if (!match.Success)
-                    return Ok(new { success = true, message = "Giao dịch không liên quan" });
+                {
+                    Console.WriteLine($"[SePay Webhook] Không tìm thấy mã đơn trong nội dung: '{transferContent}'");
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Giao dịch không liên quan hoặc thiếu mã đơn hàng trong nội dung chuyển khoản"
+                    });
+                }
 
                 var orderId = int.Parse(match.Groups[1].Value);
 
                 var confirmDto = new ConfirmPaymentDto
                 {
                     OrderId = orderId,
-                    TransactionCode = dto.TransferCode,
+                    TransactionCode = transferCode,
                     StaffId = 0 // 0 = hệ thống tự động
                 };
 
                 await _paymentService.ConfirmBankTransferAsync(confirmDto);
 
-                Console.WriteLine($"[SePay Webhook] Đã tự động xác nhận thanh toán cho đơn #{orderId}, mã GD: {dto.TransferCode}");
+                Console.WriteLine($"[SePay Webhook] Đã tự động xác nhận thanh toán cho đơn #{orderId}, mã GD: {transferCode}");
 
                 return Ok(new { success = true, message = $"Xác nhận thanh toán đơn #{orderId} thành công" });
             }
